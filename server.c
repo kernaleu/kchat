@@ -5,17 +5,21 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 #include <signal.h>
+#include <pthread.h>
 
 #define PORT 1337 // default
 #define BUFFSIZE 1024
+
+char *palette[] = {"[0;31m", "[0;32m", "[0;33m", "[0;34m", "[0;35m", "[0;36m"};
 
 typedef struct {
     int id;
     int connfd;
     struct sockaddr_in addr;
+    int color;
 } client_t;
 
-int handle_client(client_t *client);
+void *handle_client(void *arg);
 
 int main() 
 {
@@ -41,31 +45,36 @@ int main()
     int uid = 0;
 
     /* accept client */       
-    socklen_t client_len = sizeof(cli_addr);
-    connfd = accept(sockfd, (struct sockaddr *)&cli_addr, &client_len);
+    while (1) {
+        pthread_t tid;
+        socklen_t client_len = sizeof(cli_addr);
+        connfd = accept(sockfd, (struct sockaddr *)&cli_addr, &client_len);
+       
+        /* fill in the client struct */
+        client_t *cli = malloc(sizeof(client_t));
+        cli->addr = cli_addr;
+        cli->connfd = connfd;
+        cli->id = uid++;
+        cli->color = rand() % 5;
         
-    /* fill in the client struct */
-    client_t *cli = malloc(sizeof(client_t));
-    cli->addr = cli_addr;
-    cli->connfd = connfd;
-    cli->id = uid++;
-        
-    handle_client(cli);
-    
+        pthread_create(&tid, NULL, handle_client, cli);
+    }    
     return 0;
 }
 
-int handle_client(client_t *client)
+void *handle_client(void *arg)
 {
+    client_t *client = (client_t *)arg;
     printf("Connection from %s\n", inet_ntoa(client->addr.sin_addr));
     char msg[BUFFSIZE] = {0};
     
-    /* get input from client */
-    while(1) {
+   /* get input from client */
+   /* have more than 4 clients disconnected and enjoy the 100% cpu load :) */ 
+   while(1) {
         int read = recv(client->connfd, msg, BUFFSIZE, 0);
         if (read > 0) {
             msg[read] = '\0';
-            printf("[%d]: %s",client->id, msg);
+            printf("\033%s[%d]\033[0m: %s", palette[client->color], client->id, msg);
         }
     }
     return 0;
