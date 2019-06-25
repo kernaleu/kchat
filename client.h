@@ -1,3 +1,6 @@
+#ifndef CLIENT_H
+#define CLIENT_H
+
 typedef struct {
     int id;
     int connfd;
@@ -5,11 +8,8 @@ typedef struct {
     int color;
 } client_t;
 
-char *palette[] = {
-    "[0;31m", 
-    "[0;32m", 
-    "[0;33m", 
-    "[0;34m", 
-    "[0;35m", 
-    "[0;36m"
-};
+int accept_clients(); // main loop
+void *handle_client();
+void send_all(int sender_id, char *msg); // broadcast a message to all clients except the sender
+
+#endif
