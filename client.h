@@ -1,12 +1,17 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#define MAXCLI 2 // change this to allow more people
+
 typedef struct {
     int id;
     int connfd;
     struct sockaddr_in addr;
     int color;
 } client_t;
+
+int uid;
+client_t *client[MAXCLI];
 
 int accept_clients(); // main loop
 void *handle_client();

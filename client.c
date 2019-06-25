@@ -10,14 +10,12 @@
 #include "server.h"
 #include "colors.h"
 
-client_t *client[MAXCLI];
-int uid = 0;
-
 int accept_clients()
 {
     int connfd = 0;
     struct sockaddr_in cli_addr;
-
+    
+    uid = 0;
     /* accept clients */
     while (1) {
         socklen_t client_len = sizeof(cli_addr);
