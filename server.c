@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/socket.h> 
 #include <netinet/in.h> 
 #include <signal.h>
@@ -28,6 +29,8 @@ int main()
     
     /* accept clients */       
     accept_clients();
+
+    close(sockfd);
 
     return 0;
 }

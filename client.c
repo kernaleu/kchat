@@ -47,21 +47,28 @@ void *handle_client(void *arg)
 {
     client_t *client = (client_t *)arg;
     printf("Connection from %s\n", inet_ntoa(client->addr.sin_addr));
-    char buf_in[BUFFSIZE];
+    char buf_in[BUFFSIZE-11];
     char buf_out[BUFFSIZE];
   
     /* get input from client */
-    /* have more than 4 clients disconnected and enjoy the 100% cpu load :) */
-    while(1) {
-        int read = recv(client->connfd, buf_in, BUFFSIZE, 0);
-        if (read > 0) {
+    /* no more 100% cpu load \(^_^)/ */
+    int read;
+    while ((read = recv(client->connfd, buf_in, BUFFSIZE, 0))  > 0) {
             buf_in[read] = '\0';
-            printf("\033%s[%d]\033[0m: %s", palette[client->color], client->id, buf_in);
-            sprintf(buf_out, "\033%s[%d]\033[0m: %s", palette[client->color], client->id, buf_in);
-            send_all(client->id, buf_out);
-        }
+            if(buf_in[0] != '\0') {
+                sprintf(buf_out, "\033%s[%d]\033[0m: %s", palette[client->color], client->id, buf_in);
+                send_all(client->id, buf_out);
+            }
+            memset(buf_in, 0, sizeof(buf_out));
     }
-    return 0;
+    
+    sprintf(buf_out, "[%d] disconnected\n", client->id);
+    send_all(client->id, buf_out);
+    
+    close(client->connfd);
+    uid--;                      
+    pthread_detach(pthread_self());
+    return NULL;
 }
 
 void send_all(int sender_id, char *msg)
@@ -70,5 +77,5 @@ void send_all(int sender_id, char *msg)
         if (client[i]->id != sender_id)
             write(client[i]->connfd, msg, strlen(msg));
     }
+    printf("%s", msg);
 }
-
