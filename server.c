@@ -6,20 +6,18 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <pthread.h>
+#include <string.h>
+#include "client.h"
 
-#define PORT 1337 // default
+#define PORT 9999 
 #define BUFFSIZE 1024
+#define MAXCLI 2
 
-char *palette[] = {"[0;31m", "[0;32m", "[0;33m", "[0;34m", "[0;35m", "[0;36m"};
-
-typedef struct {
-    int id;
-    int connfd;
-    struct sockaddr_in addr;
-    int color;
-} client_t;
+client_t *client[MAXCLI];
+int uid = 0;
 
 void *handle_client(void *arg);
+void send_all(int client_id, char *msg);
 
 int main() 
 {
@@ -42,22 +40,27 @@ int main()
 		
     printf("Listening on port %d\n", PORT);
     
-    int uid = 0;
-
     /* accept client */       
     while (1) {
-        pthread_t tid;
         socklen_t client_len = sizeof(cli_addr);
         connfd = accept(sockfd, (struct sockaddr *)&cli_addr, &client_len);
        
-        /* fill in the client struct */
-        client_t *cli = malloc(sizeof(client_t));
-        cli->addr = cli_addr;
-        cli->connfd = connfd;
-        cli->id = uid++;
-        cli->color = rand() % 5;
+        if (uid+1 > MAXCLI) {
+            printf("Max client number reached. Closing descriptor: %s.\n", inet_ntoa(cli_addr.sin_addr));
+            close(connfd);
+        } else {
+            pthread_t tid;
+            /* fill in the client struct */
+            client[uid] = malloc(sizeof(client_t));
+            client[uid]->addr = cli_addr;
+            client[uid]->connfd = connfd;
+            client[uid]->color = rand() % 6;
+            client[uid]->id = uid;            
         
-        pthread_create(&tid, NULL, handle_client, cli);
+            pthread_create(&tid, NULL, handle_client, client[uid]);
+            uid++;
+        }
+        sleep(1);
     }    
     return 0;
 }
@@ -66,16 +69,27 @@ void *handle_client(void *arg)
 {
     client_t *client = (client_t *)arg;
     printf("Connection from %s\n", inet_ntoa(client->addr.sin_addr));
-    char msg[BUFFSIZE] = {0};
+    char buf_in[BUFFSIZE];
+    char buf_out[BUFFSIZE];
     
    /* get input from client */
    /* have more than 4 clients disconnected and enjoy the 100% cpu load :) */ 
    while(1) {
-        int read = recv(client->connfd, msg, BUFFSIZE, 0);
+        int read = recv(client->connfd, buf_in, BUFFSIZE, 0);
         if (read > 0) {
-            msg[read] = '\0';
-            printf("\033%s[%d]\033[0m: %s", palette[client->color], client->id, msg);
+            buf_in[read] = '\0';
+            printf("\033%s[%d]\033[0m: %s", palette[client->color], client->id, buf_in);
+            sprintf(buf_out, "\033%s[%d]\033[0m: %s", palette[client->color], client->id, buf_in);
+            send_all(client->id, buf_out);
         }
     }
     return 0;
+}
+
+void send_all(int sender_id, char *msg)
+{
+    for (int i = 0; i < uid; i++) {
+        if (client[i]->id != sender_id)
+            write(client[i]->connfd, msg, strlen(msg));
+    }
 }
