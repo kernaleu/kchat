@@ -20,21 +20,20 @@ void init_clients()
 
 void accept_clients()
 {
-    int uid;
-    connected = 0;
+    int connfd;
     struct sockaddr_in cli_addr;
     
     /* accept clients */
     while (1) {
         socklen_t client_len = sizeof(cli_addr);
-        int connfd = accept(sockfd, (struct sockaddr *)&cli_addr, &client_len);
+        connfd = accept(sockfd, (struct sockaddr *)&cli_addr, &client_len);
 
         printf("[DBG] connected: %d\n", connected);
 
         if (connected <= MAXCLI) {
             connected++;
             printf("[DBG] still are free places\n");
-            for (uid = 0; uid < MAXCLI; uid++) {
+            for (int uid = 0; uid < MAXCLI; uid++) {
                 if (client[uid]->connfd == 0) {
                     pthread_t tid;
                     /* fill in the client struct */
