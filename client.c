@@ -27,7 +27,8 @@ void accept_clients()
     while (1) {
         socklen_t client_len = sizeof(cli_addr);
         connfd = accept(sockfd, (struct sockaddr *)&cli_addr, &client_len);
-
+        
+        printf("[DBG] connection attempt from: %s\n", inet_ntoa(cli_addr.sin_addr));
         printf("[DBG] connected: %d\n", connected);
 
         if (connected <= MAXCLI) {
@@ -43,11 +44,12 @@ void accept_clients()
                     client[uid]->id = uid;
                     sprintf(client[uid]->uname, "%d", uid);
                     pthread_create(&tid, NULL, handle_client, client[uid]);
+                    printf("[DBG] accept\n");
                     break;
                 }
             }
         } else {
-             printf("Max client number reached. Closing descriptor: %s.\n", inet_ntoa(cli_addr.sin_addr));
+             printf("[DBG] Max client number reached. Closing descriptor: %s.\n", inet_ntoa(cli_addr.sin_addr));
              close(connfd);
         }
         sleep(1);
@@ -57,11 +59,14 @@ void accept_clients()
 void *handle_client(void *arg)
 {
     client_t *client = (client_t *)arg;
-    printf("Connection from %s\n", inet_ntoa(client->addr.sin_addr));
+
     char buf_in[BUFFSIZE-11];
     char buf_out[BUFFSIZE];
-    
+
     motd(client->id);
+
+    sprintf(buf_out, "** Joined: %s\n", client->uname);
+    send_all(buf_out);
 
     /* get input from client */
     int read;
@@ -73,25 +78,34 @@ void *handle_client(void *arg)
                     ;
                 } else {
                     sprintf(buf_out, "\033%s[%s]\033[0m: %s", palette[client->color], client->uname, buf_in);
-                    send_all(client->id, buf_out);
+                    send_msg(client->id, buf_out);
                 }
             }
             memset(buf_in, 0, sizeof(buf_in));
     }
 
-    sprintf(buf_out, "[%d] disconnected\n", client->id);
-    send_all(client->id, buf_out);
-    
+    sprintf(buf_out, "** Disconnected: %s\n", client->uname);
+    send_all(buf_out);
+
     client->connfd = 0;
     connected--;
     pthread_detach(pthread_self());
     return NULL;
 }
 
-void send_all(int sender_id, char *msg)
+void send_all(char *msg)
 {
     for (int uid = 0; uid < MAXCLI; uid++) {
-        if (client[uid]->id != sender_id && client[uid]->connfd != 0)
+        if (client[uid]->connfd != 0)
+            write(client[uid]->connfd, msg, strlen(msg));
+    }
+    printf("%s", msg);
+}
+
+void send_msg(int id, char *msg)
+{
+    for (int uid = 0; uid < MAXCLI; uid++) {
+        if (client[uid]->id != id && client[uid]->connfd != 0)
             write(client[uid]->connfd, msg, strlen(msg));
     }
     printf("%s", msg);

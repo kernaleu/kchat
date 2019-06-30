@@ -17,7 +17,8 @@ client_t *client[MAXCLI];
 void init_clients();
 void accept_clients(); // main loop
 void send_client(int id, char *msg); // send a reply to single client only
-void send_all(int sender_id, char *msg); // broadcast a message to all clients except the sender
+void send_msg(int id, char *msg); // send a client message to other clients 
+void send_all(char *msg); // broadcast a message to all clients 
 void motd(int id); // send message of the day
 void *handle_client();
 
