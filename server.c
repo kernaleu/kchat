@@ -7,7 +7,7 @@
 #include "server.h"
 #include "client.h"
 
-#define PORT 9999
+// port and motd moved to server.h
 
 void err_exit(char *s)
 {
@@ -18,14 +18,15 @@ void err_exit(char *s)
 void cleanup()
 {
     printf(" exiting...\n");
-    for (int i = 0; i < MAXCLI; i++)
-        free(client[i]);
-
+    //for (int i = 0; i < MAXCLI; i++)
+    //    free(client[i]);
+    close(sockfd);
     exit(0);
 }
 
-int main() 
+void main()
 {
+    connected = 0;
     struct sockaddr_in serv_addr;
     
     /* create socket */
@@ -48,10 +49,7 @@ int main()
 		
     printf("Listening on port %d\n", PORT);
     
-    /* accept clients */       
+    init_clients();
+    /* accept clients */
     accept_clients();
-
-    close(sockfd);
-
-    return 0;
 }
