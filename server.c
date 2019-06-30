@@ -7,7 +7,7 @@
 #include "server.h"
 #include "client.h"
 
-#define PORT 1337
+#define PORT 9999
 
 void err_exit(char *s)
 {
@@ -41,10 +41,10 @@ int main()
     signal(SIGINT, cleanup);
 
     if (bind(sockfd, (struct sockaddr *)&serv_addr , sizeof(serv_addr)) < 0)
-        perror("bind");
+        err_exit("bind");
 
 	if (listen(sockfd, 10) < 0)
-        perror("listen");
+        err_exit("listen");
 		
     printf("Listening on port %d\n", PORT);
     

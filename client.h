@@ -5,6 +5,7 @@
 
 typedef struct {
     int id;
+    char uname[32];
     int connfd;
     struct sockaddr_in addr;
     int color;

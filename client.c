@@ -32,6 +32,7 @@ int accept_clients()
             client[uid]->connfd = connfd;
             client[uid]->color = rand() % 12;
             client[uid]->id = uid;
+            sprintf(client[uid]->uname, "%d", uid);
 
             pthread_create(&tid, NULL, handle_client, client[uid]);
             uid++;
@@ -49,22 +50,25 @@ void *handle_client(void *arg)
     char buf_out[BUFFSIZE];
   
     /* get input from client */
-    /* no more 100% cpu load \(^_^)/ */
     int read;
-    while ((read = recv(client->connfd, buf_in, BUFFSIZE, 0))  > 0) {
+    while ((read = recv(client->connfd, buf_in, BUFFSIZE, 0)) > 0) {
             buf_in[read] = '\0';
-            if(buf_in[0] != '\0') {
-                sprintf(buf_out, "\033%s[%d]\033[0m: %s", palette[client->color], client->id, buf_in);
-                send_all(client->id, buf_out);
+            if (strlen(buf_in) > 1) {
+                if (buf_in[0] == '/') {
+                    // handle commands
+                    ;
+                } else {
+                    sprintf(buf_out, "\033%s[%s]\033[0m: %s", palette[client->color], client->uname, buf_in);
+                    send_all(client->id, buf_out);
+                }
             }
-            memset(buf_in, 0, sizeof(buf_out));
+            memset(buf_in, 0, sizeof(buf_in));
     }
     
     sprintf(buf_out, "[%d] disconnected\n", client->id);
     send_all(client->id, buf_out);
     
-    close(client->connfd);
-    uid--;                      
+    close(client->connfd);                  
     pthread_detach(pthread_self());
     return NULL;
 }
