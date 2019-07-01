@@ -4,10 +4,10 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #include "client.h"
 #include "server.h"
+#include "command.h"
 #include "colors.h"
 
 void init_clients()
@@ -74,14 +74,19 @@ void *handle_client(void *arg)
             buf_in[read] = '\0';
             if (strlen(buf_in) > 1) {
                 if (buf_in[0] == '/') {
-                    // handle commands
-                    ;
+                    char *cmd = strtok(buf_in, " ");
+                    
+                    if (strcmp("/name", cmd) == 0) {
+                        char *arg = strtok(NULL , " ");
+                        change_name(arg, client->id);
+                    }
                 } else {
                     sprintf(buf_out, "\033%s[%s]\033[0m: %s", palette[client->color], client->uname, buf_in);
                     send_msg(client->id, buf_out);
                 }
+            
             }
-            memset(buf_in, 0, sizeof(buf_in));
+        memset(buf_in, 0, sizeof(buf_in));
     }
 
     sprintf(buf_out, "** Disconnected: %s\n", client->uname);

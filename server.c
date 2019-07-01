@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <sys/socket.h> 
-#include <netinet/in.h> 
+#include <sys/socket.h>  
 #include <signal.h>
 #include "server.h"
-#include "client.h"
+#include "client.h" // <netinet/in.h>
 
 // port and motd moved to server.h
 

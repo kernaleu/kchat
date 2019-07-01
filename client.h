@@ -1,6 +1,13 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+/* netinet included here because we have a struct member of type sockaddr_in.
+   if we hadn't included this here then we would have to include this in
+   every other .c file this header is used in even though it's completely
+   unrelated to the .c file's contents. */
+   
+#include <netinet/in.h> 
+
 #define MAXCLI 10 // change this to allow more people
 
 typedef struct {
