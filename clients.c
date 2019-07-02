@@ -112,7 +112,7 @@ void *handle_client(void *arg)
  */
 void server_send(int mode, int uid, const char *format, ...)
 {
-	char buf[buffsize+28];
+    char buf[buffsize+28];
     va_list args;
     va_start(args, format);
     vsnprintf(buf, sizeof(buf), format, args);
