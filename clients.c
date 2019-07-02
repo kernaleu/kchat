@@ -59,10 +59,10 @@ void *handle_client(void *arg)
 
     int read, join = 0;
     char buf_in[buffsize];
-    char buf_out[buffsize + 13];
+    char buf_out[buffsize + 28];
 
     /* Send motd */
-    sprintf(buf_out, " \e[34m* \e[35m%s\n\e[34m * \e[35mPlease enter your nick.\e[0m\n", MOTD);
+    snprintf(buf_out, sizeof(buf_out), " \e[34m* \e[35m%s\n\e[34m * \e[35mPlease enter your nick.\e[0m\n", MOTD);
     send_client(client->id, buf_out);
 
     /* Get input from client */
@@ -78,7 +78,7 @@ void *handle_client(void *arg)
             if (!join) {
                 if (cmd_nick(0, client->id, buf_in)) {
                     join = 1;
-                    sprintf(buf_out, " \e[34m* %s joined. (connected: %d)\e[0m\n", client->nick, connected);
+                    snprintf(buf_out, sizeof(buf_out), " \e[34m* %s joined. (connected: %d)\e[0m\n", client->nick, connected);
                     send_all(buf_out);
                 }
             } else {
@@ -89,7 +89,7 @@ void *handle_client(void *arg)
                         cmd_nick(1, client->id, arg);
                     }
                 } else {
-                    sprintf(buf_out, "\e[1;%dm%s\e[0m: %s\n", client->color, client->nick, buf_in);
+                    snprintf(buf_out, sizeof(buf_out), "\e[1;%dm%s\e[0m: %s\n", client->color, client->nick, buf_in);
                     send_msg(client->id, buf_out);
                 }
             }
@@ -100,7 +100,7 @@ void *handle_client(void *arg)
 
     client->connfd = 0;
     connected--;
-    sprintf(buf_out, " \e[34m* %s left. (connected: %d)\e[0m\n", client->nick, connected);
+    snprintf(buf_out, sizeof(buf_out), " \e[34m* %s left. (connected: %d)\e[0m\n", client->nick, connected);
     send_all(buf_out);
 
     pthread_detach(pthread_self());

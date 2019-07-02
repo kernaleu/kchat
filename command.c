@@ -19,7 +19,7 @@ int cmd_nick(int type, int uid, char *nick)
     strncpy(oldnick, client[uid]->nick, 16);
     strncpy(client[uid]->nick, nick, 16);
     if (type) {
-        sprintf(tmp, " \e[34m* %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
+        snprintf(tmp, sizeof(tmp), " \e[34m* %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
         send_all(tmp);
     }
     return 1;
