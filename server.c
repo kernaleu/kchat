@@ -3,10 +3,11 @@
 #include <stdlib.h>
 #include <sys/socket.h>  
 #include <signal.h>
-#include "server.h"
-#include "client.h" // <netinet/in.h>
+#include "clients.h" // <netinet/in.h>
+#include "config.h"
 
-// port and motd moved to server.h
+/* server socket descriptor */
+int sockfd;
 
 void err_exit(char *s)
 {
@@ -16,15 +17,15 @@ void err_exit(char *s)
 
 void cleanup()
 {
-    send_all("** Shutting down server\n");
-    printf(" exiting...\n");
+    send_all("* Shutting down server\n");
+    printf("exiting...\n");
     //for (int i = 0; i < MAXCLI; i++)
     //    free(client[i]);
     close(sockfd);
     exit(0);
 }
 
-void main()
+void main(int argc, char *argv[])
 {
     connected = 0;
     struct sockaddr_in serv_addr;
@@ -47,7 +48,7 @@ void main()
 	if (listen(sockfd, 10) < 0)
         err_exit("listen");
 		
-    printf("Listening on port %d\n", PORT);
+    printf("* Listening on port %d\n", PORT);
     
     init_clients();
     /* accept clients */

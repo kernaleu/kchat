@@ -1,5 +1,5 @@
-#ifndef CLIENT_H
-#define CLIENT_H
+#ifndef CLIENTS_H
+#define CLIENTS_H
 
 /* netinet included here because we have a struct member of type sockaddr_in.
    if we hadn't included this here then we would have to include this in
@@ -17,6 +17,8 @@ typedef struct {
     struct sockaddr_in addr;
     int color;
 } client_t;
+
+extern int sockfd;
 
 int connected;
 client_t *client[MAXCLI];

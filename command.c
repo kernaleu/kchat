@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "client.h"
+#include "clients.h"
 #include "command.h"
 
 void remove_nl(char *arg)
@@ -10,15 +10,6 @@ void remove_nl(char *arg)
             arg[i] = '\0';
     }                                            
 }
-
-/*
-int validate_message(char *msg)
-{
-    for (int i = 0; msg[i] != '\0'; i++) {
-        if (arg[i] >)
-    }
-}
-*/
 
 int cmd_nick(int type, int uid, char *nick)
 {

@@ -5,9 +5,9 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include "client.h"
-#include "server.h"
+#include "clients.h"
 #include "command.h"
+#include "config.h"
 
 void init_clients()
 {

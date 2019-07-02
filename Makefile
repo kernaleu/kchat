@@ -2,7 +2,7 @@ LDFLAGS=-pthread
 
 all: server
 
-server: command.c client.c
+server: command.c clients.c
 
 clean:
 	rm -f server
