@@ -56,40 +56,33 @@ void *handle_client(void *arg)
 {
     client_t *client = (client_t *)arg;
 
-    int read;
+    int read, join = 0;
     char buf_in[BUFFSIZE];
     char buf_out[BUFFSIZE+13];
 
-    sprintf(buf_out, " \e[34m* \e[35m%s\e[0m\n\e[34m * \e[35mPlease enter your nick.\e[0m\n", MOTD);
+    /* Send motd */
+    sprintf(buf_out, " \e[34m* \e[35m%s\n\e[34m * \e[35mPlease enter your nick.\e[0m\n", MOTD);
     send_client(client->id, buf_out);
 
-    while ((read = recv(client->connfd, buf_in, 16, 0)) > 0) {
+    /* Get input from client */
+    while ((read = recv(client->connfd, buf_in, BUFFSIZE-1, 0)) > 0) {
         buf_in[read] = '\0';
 
-         for (int i = 0; i < strlen(buf_in); i++) {
-            if (buf_in[i] < ' ' || buf_in[i] > '~') buf_in[i] = '\0';
-         }
+        for (int i = 0; i < strlen(buf_in); i++) {
+            if (buf_in[i] < ' ' || buf_in[i] > '~') buf_in[i] = ' ';
+
+        }
 
         if (strlen(buf_in) > 1) {
-            if(cmd_nick(0, client->id, buf_in)) break;
-        }
-    }
-
-    sprintf(buf_out, " \e[34m* %s joined. (connected: %d)\e[0m\n", client->nick, connected);
-    send_all(buf_out);
-
-    /* get input from client */
-    while ((read = recv(client->connfd, buf_in, BUFFSIZE-1, 0)) > 0) {
-            buf_in[read] = '\0';
-
-            for (int i = 0; i < strlen(buf_in); i++) {
-                if (buf_in[i] < ' ' || buf_in[i] > '~') buf_in[i] = '\0';
-            }
-
-            if (strlen(buf_in) > 1) {
+            if (!join) {
+                if (cmd_nick(0, client->id, buf_in)) {
+                    join = 1;
+                    sprintf(buf_out, " \e[34m* %s joined. (connected: %d)\e[0m\n", client->nick, connected);
+                    send_all(buf_out);
+                }
+            } else {
                 if (buf_in[0] == '/') {
                     char *cmd = strtok(buf_in, " ");
-                    
                     if (strcmp("/nick", cmd) == 0) {
                         char *arg = strtok(NULL , " ");
                         cmd_nick(1, client->id, arg);
@@ -99,6 +92,7 @@ void *handle_client(void *arg)
                     send_msg(client->id, buf_out);
                 }
             }
+        }
         memset(buf_in, 0, sizeof(buf_in));
     }
 
@@ -133,5 +127,5 @@ void send_msg(int sender_uid, char *msg)
 void send_client(int uid, char *msg)
 {
     write(client[uid]->connfd, msg, strlen(msg));
-    printf("\e[1;31mserver (%s): \e[0m: %s", client[uid]->nick, msg);
+    //printf("\e[1;31mserver (%s): \e[0m: %s", client[uid]->nick, msg);
 }
