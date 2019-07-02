@@ -130,7 +130,3 @@ void server_send(int mode, int uid, const char *format, ...)
         }
     }
 }
-
-// !(true && true) false
-
-// false || true   true
