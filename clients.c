@@ -98,7 +98,7 @@ void *handle_client(void *arg)
 
     client->connfd = 0;
     connected--;
-    server_send(3, 0, " \e[34m* %s left. (connected: %d)\e[0m\n", client->nick, connected);
+    server_send(2, 0, " \e[34m* %s left. (connected: %d)\e[0m\n", client->nick, connected);
 
     pthread_detach(pthread_self());
     return NULL;
