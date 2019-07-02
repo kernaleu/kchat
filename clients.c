@@ -11,7 +11,8 @@
 
 void init_clients()
 {
-    for (int i = 0; i < MAXCLI; i++) {
+    client = malloc(sizeof(client_t *) * maxcli);
+    for (int i = 0; i < maxcli; i++) {
         client[i] = malloc(sizeof(client_t));
         client[i]->connfd = 0;
     }
@@ -29,9 +30,9 @@ void accept_clients()
         
         printf("(srv): connection attempt from: %s\n", inet_ntoa(cli_addr.sin_addr));
 
-        if (connected <= MAXCLI) {
+        if (connected < maxcli) {
             connected++;
-            for (int uid = 0; uid < MAXCLI; uid++) {
+            for (int uid = 0; uid < maxcli; uid++) {
                 if (client[uid]->connfd == 0) {
                     pthread_t tid;
                     /* fill in the client struct */
@@ -57,15 +58,15 @@ void *handle_client(void *arg)
     client_t *client = (client_t *)arg;
 
     int read, join = 0;
-    char buf_in[BUFFSIZE];
-    char buf_out[BUFFSIZE+13];
+    char buf_in[buffsize];
+    char buf_out[buffsize + 13];
 
     /* Send motd */
     sprintf(buf_out, " \e[34m* \e[35m%s\n\e[34m * \e[35mPlease enter your nick.\e[0m\n", MOTD);
     send_client(client->id, buf_out);
 
     /* Get input from client */
-    while ((read = recv(client->connfd, buf_in, BUFFSIZE-1, 0)) > 0) {
+    while ((read = recv(client->connfd, buf_in, buffsize-1, 0)) > 0) {
         buf_in[read] = '\0';
 
         for (int i = 0; i < strlen(buf_in); i++) {
@@ -94,6 +95,7 @@ void *handle_client(void *arg)
             }
         }
         memset(buf_in, 0, sizeof(buf_in));
+        memset(buf_out, 0, sizeof(buf_out));
     }
 
     client->connfd = 0;
@@ -107,7 +109,7 @@ void *handle_client(void *arg)
 
 void send_all(char *msg)
 {
-    for (int uid = 0; uid < MAXCLI; uid++) {
+    for (int uid = 0; uid < maxcli; uid++) {
         if (client[uid]->connfd != 0)
             write(client[uid]->connfd, msg, strlen(msg));
     }
@@ -116,7 +118,7 @@ void send_all(char *msg)
 
 void send_msg(int sender_uid, char *msg)
 {
-    for (int uid = 0; uid < MAXCLI; uid++) {
+    for (int uid = 0; uid < maxcli; uid++) {
         if (client[uid]->connfd != 0 && uid != sender_uid) {
             write(client[uid]->connfd, msg, strlen(msg));
         }

@@ -8,8 +8,6 @@
    
 #include <netinet/in.h> 
 
-#define MAXCLI 10 // change this to allow more people
-
 typedef struct {
     int id;
     char nick[16];
@@ -18,10 +16,14 @@ typedef struct {
     int color;
 } client_t;
 
+client_t **client;
+
+int port;
+int buffsize;
+int maxcli;
 extern int sockfd;
 
 int connected;
-client_t *client[MAXCLI];
 
 void init_clients();
 void accept_clients(); // main loop
