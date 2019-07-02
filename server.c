@@ -20,7 +20,7 @@ void cleanup()
     printf(" exiting...\n");
     //for (int i = 0; i < MAXCLI; i++)
     //    free(client[i]);
-    close(sockfd);
+    //close(sockfd);
     exit(0);
 }
 

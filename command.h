@@ -1,1 +1,1 @@
-int change_name(char *arg, int id);
+int cmd_nick(int mode, int uid, char *nick);
