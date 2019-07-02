@@ -6,10 +6,5 @@
 #define MAXCLI 10
 #define MOTD "Welcome to kernal chat."
 
-/* dont touch these! */
-int port;
-int buffsize;
-int maxcli;
-
 #endif
 

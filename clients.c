@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -61,9 +62,8 @@ void *handle_client(void *arg)
     char buf_in[buffsize];
     char buf_out[buffsize + 28];
 
-    /* Send motd */
-    snprintf(buf_out, sizeof(buf_out), " \e[34m* \e[35m%s\n\e[34m * \e[35mPlease enter your nick.\e[0m\n", MOTD);
-    send_client(client->id, buf_out);
+    /* Send motd */ 
+    server_send(0, client->id, " \e[34m* \e[35m%s\n\e[34m * \e[35mPlease enter your nick.\e[0m\n", MOTD);
 
     /* Get input from client */
     while ((read = recv(client->connfd, buf_in, buffsize-1, 0)) > 0) {
@@ -78,8 +78,7 @@ void *handle_client(void *arg)
             if (!join) {
                 if (cmd_nick(0, client->id, buf_in)) {
                     join = 1;
-                    snprintf(buf_out, sizeof(buf_out), " \e[34m* %s joined. (connected: %d)\e[0m\n", client->nick, connected);
-                    send_all(buf_out);
+                    server_send(2, 0, " \e[34m* %s joined. (connected: %d)\e[0m\n", client->nick, connected);
                 }
             } else {
                 if (buf_in[0] == '/') {
@@ -89,8 +88,7 @@ void *handle_client(void *arg)
                         cmd_nick(1, client->id, arg);
                     }
                 } else {
-                    snprintf(buf_out, sizeof(buf_out), "\e[1;%dm%s\e[0m: %s\n", client->color, client->nick, buf_in);
-                    send_msg(client->id, buf_out);
+                    server_send(1, client->id, "\e[1;%dm%s\e[0m: %s\n", client->color, client->nick, buf_in);
                 }
             }
         }
@@ -100,34 +98,39 @@ void *handle_client(void *arg)
 
     client->connfd = 0;
     connected--;
-    snprintf(buf_out, sizeof(buf_out), " \e[34m* %s left. (connected: %d)\e[0m\n", client->nick, connected);
-    send_all(buf_out);
+    server_send(3, 0, " \e[34m* %s left. (connected: %d)\e[0m\n", client->nick, connected);
 
     pthread_detach(pthread_self());
     return NULL;
 }
 
-void send_all(char *msg)
+/* 
+ * Sending mode:
+ * 0. Send only to uid
+ * 1. Send to everyone except uid
+ * 2. Send to everyone (ignores uid)
+ */
+void server_send(int mode, int uid, const char *format, ...)
 {
-    for (int uid = 0; uid < maxcli; uid++) {
-        if (client[uid]->connfd != 0)
-            write(client[uid]->connfd, msg, strlen(msg));
-    }
-    printf("%s", msg);
-}
+	char buf[buffsize+28];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buf, sizeof(buf), format, args);
+	va_end(args);
 
-void send_msg(int sender_uid, char *msg)
-{
-    for (int uid = 0; uid < maxcli; uid++) {
-        if (client[uid]->connfd != 0 && uid != sender_uid) {
-            write(client[uid]->connfd, msg, strlen(msg));
+    if (mode == 0) {
+        write(client[uid]->connfd, buf, strlen(buf));
+    } else {
+        for (int i = 0; i < maxcli; i++) {
+            if (client[i]->connfd != 0) {
+                if (mode == 2 || i != uid) {
+                    write(client[i]->connfd, buf, strlen(buf));
+                }
+            }
         }
     }
-    printf("%s", msg);
 }
 
-void send_client(int uid, char *msg)
-{
-    write(client[uid]->connfd, msg, strlen(msg));
-    //printf("\e[1;31mserver (%s): \e[0m: %s", client[uid]->nick, msg);
-}
+// !(true && true) false
+
+// false || true   true

@@ -26,11 +26,8 @@ extern int sockfd;
 int connected;
 
 void init_clients();
-void accept_clients(); // main loop
-void send_client(int uid, char *msg); // send a reply to single client only
-void send_msg(int sender_uid, char *msg); // send a client message to other clients 
-void send_all(char *msg); // broadcast a message to all clients 
-void motd(int id); // send message of the day
+void accept_clients(); /* main loop */
+void server_send(int mode, int uid, const char *format, ...); /* send messages */
 void *handle_client();
 
 #endif
