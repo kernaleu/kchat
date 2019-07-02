@@ -3,8 +3,8 @@
 
 #define BUFFSIZE 1024
 
-#define PORT 9999
-#define MOTD "***Under development!***"
+#define PORT 1337
+#define MOTD "Welcome to kernal chat."
 
 int sockfd; // server socket descriptor
 // nothing else for now.
