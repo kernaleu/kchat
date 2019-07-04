@@ -16,6 +16,6 @@ int cmd_nick(int type, int uid, char *nick)
     char oldnick[16];
     strncpy(oldnick, client[uid]->nick, 16);
     strncpy(client[uid]->nick, nick, 16);
-    if (type) server_send(2, 0, " \e[34m* %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
+    if (type) server_send(2, 0, "\r\e[34m * %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
     return 1;
 }

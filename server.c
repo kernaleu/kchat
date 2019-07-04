@@ -17,7 +17,7 @@ void err_exit(char *s)
 
 void cleanup()
 {
-    server_send(3, 0, " * Shutting down server\n");
+    server_send(3, 0, "\r * Shutting down server\n");
     printf("exiting...\n");
     for (int i = 0; i < MAXCLI; i++)
         free(client[i]);
@@ -74,7 +74,7 @@ void main(int argc, char *argv[])
 	if (listen(sockfd, 10) < 0)
         err_exit("listen");
 		
-    printf("* Listening on port %d\n", port);
+    printf(" * Listening on port %d\n", port);
   
     init_clients();
     accept_clients();

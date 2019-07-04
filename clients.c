@@ -63,7 +63,7 @@ void *handle_client(void *arg)
     char buf_out[buffsize + 28];
 
     /* Send motd */ 
-    server_send(0, client->id, " \e[34m* \e[35m%s\n\e[34m * \e[35mPlease enter your nick.\e[0m\n", MOTD);
+    server_send(0, client->id, "\r\e[34m * \e[35m%s\n\e[34m * \e[35mPlease enter your nick.\e[0m\n", MOTD);
 
     /* Get input from client */
     while ((read = recv(client->connfd, buf_in, buffsize-1, 0)) > 0) {
@@ -78,7 +78,7 @@ void *handle_client(void *arg)
             if (!join) {
                 if (cmd_nick(0, client->id, buf_in)) {
                     join = 1;
-                    server_send(2, 0, " \e[34m* %s joined. (connected: %d)\e[0m\n", client->nick, connected);
+                    server_send(2, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick, connected);
                 }
             } else {
                 if (buf_in[0] == '/') {
@@ -88,7 +88,7 @@ void *handle_client(void *arg)
                         cmd_nick(1, client->id, arg);
                     }
                 } else {
-                    server_send(1, client->id, "\e[1;%dm%s\e[0m: %s\n", client->color, client->nick, buf_in);
+                    server_send(1, client->id, "\r\e[1;%dm%s\e[0m: %s\n", client->color, client->nick, buf_in);
                 }
             }
         }
@@ -98,7 +98,7 @@ void *handle_client(void *arg)
 
     client->connfd = 0;
     connected--;
-    server_send(2, 0, " \e[34m* %s left. (connected: %d)\e[0m\n", client->nick, connected);
+    server_send(2, 0, "\r\e[34m * %s left. (connected: %d)\e[0m\n", client->nick, connected);
 
     pthread_detach(pthread_self());
     return NULL;
@@ -112,7 +112,7 @@ void *handle_client(void *arg)
  */
 void server_send(int mode, int uid, const char *format, ...)
 {
-    char buf[buffsize+28];
+    char buf[buffsize+30];
     va_list args;
     va_start(args, format);
     vsnprintf(buf, sizeof(buf), format, args);
