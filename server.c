@@ -19,8 +19,11 @@ void cleanup()
 {
     server_send(3, 0, "\r * Shutting down server\n");
     printf("exiting...\n");
-    for (int i = 0; i < MAXCLI; i++)
+    for (int i = 0; i < MAXCLI; i++) {
+        close(client[i]->connfd);
         free(client[i]);
+    }
+    free(client);
     close(sockfd);
     exit(0);
 }
@@ -59,6 +62,9 @@ void main(int argc, char *argv[])
     /* create socket */
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         err_exit("socket");
+
+    int option = 1;
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
