@@ -6,7 +6,7 @@
 #include "clients.h" // <netinet/in.h>
 #include "config.h"
 
-/* server socket descriptor */
+/* Server socket descriptor */
 int sockfd;
 
 void err_exit(char *s)
@@ -17,7 +17,7 @@ void err_exit(char *s)
 
 void cleanup()
 {
-    server_send(3, 0, "\r * Shutting down server\n");
+    server_send(3, 0, " * Shutting down server\n");
     printf("exiting...\n");
     for (int i = 0; i < MAXCLI; i++) {
         close(client[i]->connfd);
@@ -30,7 +30,7 @@ void cleanup()
 
 void main(int argc, char *argv[])
 {
-    port = PORT, buffsize = BUFFSIZE, maxcli = MAXCLI;
+    port = PORT, bufsize = BUFSIZE, maxcli = MAXCLI; /* Set default values if not specified in cli options */
 
     int opt;
 
@@ -42,26 +42,23 @@ void main(int argc, char *argv[])
                 port = atoi(optarg);
                 break;
             case 'b':
-                buffsize = atoi(optarg);
-                if (buffsize < 20) {
+                bufsize = atoi(optarg);
+                if (bufsize < 20) {
                     printf("Buffer size must be at least 20\n");
-                    buffsize = 20;
+                    bufsize = 20;
                 }
                 break;
             case 'm':
                 maxcli = atoi(optarg);
-                break;
-            default:
-                break;
         }
     }
     
+    outbufsize = bufsize + 30; /* Give some more space for formating */
     connected = 0;
     struct sockaddr_in serv_addr;
     
-    /* create socket */
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        err_exit("socket");
+    /* Create socket */
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) err_exit("socket");
 
     int option = 1;
     setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
@@ -70,15 +67,12 @@ void main(int argc, char *argv[])
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     serv_addr.sin_port = htons(port);
 
-    /* ignore SIGPIPE */
+    /* Ignore SIGPIPE */
     signal(SIGPIPE, SIG_IGN);
     signal(SIGINT, cleanup);
 
-    if (bind(sockfd, (struct sockaddr *)&serv_addr , sizeof(serv_addr)) < 0)
-        err_exit("bind");
-
-	if (listen(sockfd, 10) < 0)
-        err_exit("listen");
+    if (bind(sockfd, (struct sockaddr *)&serv_addr , sizeof(serv_addr)) < 0) err_exit("bind");
+	if (listen(sockfd, 10) < 0) err_exit("listen");
 		
     printf(" * Listening on port %d\n", port);
   
