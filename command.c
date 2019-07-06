@@ -13,6 +13,10 @@ void remove_nl(char *arg)
 
 int cmd_nick(int type, int uid, char *nick)
 {
+    if (nick == NULL) {
+        server_send(0, uid, "%s\n", "usage: /nick nickname");
+        return 0;
+    }
     remove_nl(nick);
     char oldnick[16];
     strncpy(oldnick, client[uid]->nick, 16);

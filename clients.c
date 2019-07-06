@@ -136,11 +136,12 @@ void *handle_client(void *arg)
                 remove_nl(buf);
                 char *cmd = strtok(buf, " ");
                 if (strcmp("/nick", cmd) == 0) {
-                    char *arg = strtok(NULL , " ");
-                    cmd_nick(1, client->id, arg);
-                }
-                else if (strcmp("/list", buf) == 0) {
+                        char *arg = strtok(NULL , " ");
+                        cmd_nick(1, client->id, arg);
+                } else if (strcmp("/list", buf) == 0) {
                     list_users(client->id);
+                } else {
+                    server_send(0, client->id, "%s\n", "unknown command");
                 }
             } else {
                 /* Send message */
