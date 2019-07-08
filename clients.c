@@ -98,6 +98,7 @@ void *handle_client(void *arg)
         remove_nl(fpass);
         if ((pass = strtok(NULL, ":")) == NULL) {
             server_send(0, client->id, "This nick is registered. No password supplied.\n");
+            client->mode = 2;
         } else {
             if (strcmp(fpass, pass) == 0) {
                 strcpy(client->nick, nick);
