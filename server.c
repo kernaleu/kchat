@@ -30,12 +30,11 @@ void cleanup()
 
 void main(int argc, char *argv[])
 {
-    port = PORT, bufsize = BUFSIZE, maxcli = MAXCLI; /* Set default values if not specified in cli options */
-
+    /* Set default values if not specified in cli options */
+    port = PORT, bufsize = BUFSIZE, maxcli = MAXCLI; 
+    
+    /* usage: ./server -p [port] -b [buffsize] -m [maxclient] */
     int opt;
-
-/* usage: ./server -p [port] -b [buffsize] -m [maxclient] */
-
     while ((opt = getopt(argc, argv, "p:b:m:")) != -1) {
         switch (opt) {
             case 'p':

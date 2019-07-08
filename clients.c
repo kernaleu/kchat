@@ -67,6 +67,40 @@ void *handle_client(void *arg)
 
     FILE *f;
 
+    /* auth prototype */
+    char authstr[bufsize];
+    char nick[16];
+    char pass[50];
+    FILE *auth_fp = fopen("auth.txt", "ra");
+    char line[1024];
+    int registered = 0;
+
+    read(client->connfd, authstr, bufsize-1);
+
+    if (sscanf(authstr, "%[^:]:%s", nick, pass) != 2) {
+        server_send(0, client->id, "Wrong format for the auth string. Try nick:pass.\n");
+    } else {
+        while (fgets(line, bufsize, auth_fp) != NULL) {
+            /* the nick is registered and is in the auth file.*/           
+            if (strstr(line, nick)) {
+                puts("reg");
+                strcpy(client->nick, nick);
+                registered = 1;
+                break;
+            }
+        }
+        if (registered) {
+            puts("this nick is registered");
+            client->mode = 3;
+        } else {
+            puts("not registered");
+            strcpy(client->nick, nick);
+            client->mode = 2;
+        }
+    }
+    
+    server_send(2, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick);
+    
     /* Get input from client */
     while ((netread = recv(client->connfd, buf, bufsize-1, 0)) > 0) {
         buf[netread] = '\0';
@@ -121,14 +155,6 @@ void *handle_client(void *arg)
                 client->mode = 2;
             }
         } */
-
-        client->mode = 2;
-
-        if (auth) {
-            /* TODO: Check for credentials */
-            server_send(2, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick, connected);
-            auth = 0;
-        }
 
         if (strlen(buf) > 1) { /* Block empty messages */
             /* Handle commands */
