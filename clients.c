@@ -69,8 +69,8 @@ void *handle_client(void *arg)
 
     /* auth prototype */
     char authstr[bufsize];
-    char nick[16];
-    char pass[50];
+    char *nick;
+    char *pass;
     FILE *auth_fp = fopen("auth.txt", "ra");
     char line[1024];
     int registered = 0;
@@ -78,20 +78,27 @@ void *handle_client(void *arg)
     read(client->connfd, authstr, bufsize-1);
     remove_nl(authstr);
 
-    if (sscanf(authstr, "%[^:]:%s", nick, pass) != 2) {
+    if ((nick = strtok(authstr, ":")) == NULL) {
+        nick = authstr;
+    }
+    /* if (sscanf(authstr, "%[^:]:%s", nick, pass) != 2) {
         server_send(0, client->id, "Wrong format for the auth string. Try nick:pass.\n");
-    } else {
-        while (fgets(line, bufsize, auth_fp) != NULL) {
-            /* the nick is registered and is in the auth file.*/           
-            if (strstr(line, nick)) {
-                registered = 1;
-                break;
-            }
+    } else { */
+
+    while (fgets(line, bufsize, auth_fp) != NULL) {
+        /* the nick is registered and is in the auth file.*/           
+        if (strstr(line, nick)) {
+            registered = 1;
+            break;
         }
-        if (registered) {
-            char *fpass = strchr(line, ':') + 1;
-            remove_nl(fpass);
-           
+    }
+        
+    if (registered) {
+        char *fpass = strchr(line, ':') + 1;
+        remove_nl(fpass);
+        if ((pass = strtok(NULL, ":")) == NULL) {
+            server_send(0, client->id, "This nick is registered. No password supplied.\n");
+        } else {
             if (strcmp(fpass, pass) == 0) {
                 strcpy(client->nick, nick);
                 client->mode = 3;
@@ -99,10 +106,10 @@ void *handle_client(void *arg)
                 server_send(0, client->id, "Wrong password.\n");
                 client->mode = 2;
             }
-        } else {
-            strcpy(client->nick, nick);
-            client->mode = 2;
         }
+    } else {
+        strcpy(client->nick, nick);
+        client->mode = 2;
     }
     
     server_send(2, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick, connected);
