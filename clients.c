@@ -76,6 +76,7 @@ void *handle_client(void *arg)
     int registered = 0;
 
     read(client->connfd, authstr, bufsize-1);
+    remove_nl(authstr);
 
     if (sscanf(authstr, "%[^:]:%s", nick, pass) != 2) {
         server_send(0, client->id, "Wrong format for the auth string. Try nick:pass.\n");
@@ -83,23 +84,28 @@ void *handle_client(void *arg)
         while (fgets(line, bufsize, auth_fp) != NULL) {
             /* the nick is registered and is in the auth file.*/           
             if (strstr(line, nick)) {
-                puts("reg");
-                strcpy(client->nick, nick);
                 registered = 1;
                 break;
             }
         }
         if (registered) {
-            puts("this nick is registered");
-            client->mode = 3;
+            char *fpass = strchr(line, ':') + 1;
+            remove_nl(fpass);
+           
+            if (strcmp(fpass, pass) == 0) {
+                strcpy(client->nick, nick);
+                client->mode = 3;
+            } else {
+                server_send(0, client->id, "Wrong password.\n");
+                client->mode = 2;
+            }
         } else {
-            puts("not registered");
             strcpy(client->nick, nick);
             client->mode = 2;
         }
     }
     
-    server_send(2, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick);
+    server_send(2, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick, connected);
     
     /* Get input from client */
     while ((netread = recv(client->connfd, buf, bufsize-1, 0)) > 0) {

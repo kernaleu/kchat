@@ -51,7 +51,7 @@ int outbufsize;
 
 extern int sockfd;
 
-int connected;
+unsigned int connected;
 
 void init_clients();
 void accept_clients(); /* Main loop */
