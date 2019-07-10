@@ -56,6 +56,7 @@ unsigned int connected;
 void init_clients();
 void accept_clients(); /* Main loop */
 void server_send(int mode, int uid, const char *format, ...); /* Send messages */
+int nick_reg(int uid, char *authstr);
 void *handle_client();
 
 #endif

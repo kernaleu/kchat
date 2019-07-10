@@ -66,53 +66,11 @@ void *handle_client(void *arg)
     char buf[bufsize], filename[5];
 
     FILE *f;
-
-    /* auth prototype */
-    char authstr[bufsize];
-    char *nick;
-    char *pass;
-    FILE *auth_fp = fopen("auth.txt", "ra");
-    char line[1024];
-    int registered = 0;
-
-    read(client->connfd, authstr, bufsize-1);
-    remove_nl(authstr);
-
-    if ((nick = strtok(authstr, ":")) == NULL) {
-        nick = authstr;
-    }
-    /* if (sscanf(authstr, "%[^:]:%s", nick, pass) != 2) {
-        server_send(0, client->id, "Wrong format for the auth string. Try nick:pass.\n");
-    } else { */
-
-    while (fgets(line, bufsize, auth_fp) != NULL) {
-        /* the nick is registered and is in the auth file.*/           
-        if (strstr(line, nick)) {
-            registered = 1;
-            break;
-        }
-    }
-        
-    if (registered) {
-        char *fpass = strchr(line, ':') + 1;
-        remove_nl(fpass);
-        if ((pass = strtok(NULL, ":")) == NULL) {
-            server_send(0, client->id, "This nick is registered. No password supplied.\n");
-            client->mode = 2;
-        } else {
-            if (strcmp(fpass, pass) == 0) {
-                strcpy(client->nick, nick);
-                client->mode = 3;
-            } else {
-                server_send(0, client->id, "Wrong password.\n");
-                client->mode = 2;
-            }
-        }
-    } else {
-        strcpy(client->nick, nick);
-        client->mode = 2;
-    }
     
+    char authstr[bufsize];
+    read(client->connfd, authstr, bufsize-1);
+    nick_reg(client->id, authstr);
+
     server_send(2, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick, connected);
     
     /* Get input from client */
@@ -177,7 +135,7 @@ void *handle_client(void *arg)
                 char *cmd = strtok(buf, " ");
                 if (strcmp("/nick", cmd) == 0) {
                         char *arg = strtok(NULL , " ");
-                        cmd_nick(1, client->id, arg);
+                        cmd_nick(client->id, arg);
                 } else if (strcmp("/list", buf) == 0) {
                     list_users(client->id);
                 } else {
@@ -222,4 +180,53 @@ void server_send(int mode, int uid, const char *format, ...)
             }
         }
     }
+}
+
+
+int nick_reg(int uid, char *authstr)
+{
+    char *nick;
+    char *pass;
+    FILE *auth_fp = fopen("auth.txt", "ra");
+    char line[1024];
+    int registered = 0, set = 0;
+
+    remove_nl(authstr);
+
+    if ((nick = strtok(authstr, ":")) == NULL) {
+        nick = authstr;
+    }
+    while (fgets(line, bufsize, auth_fp) != NULL) {
+        /* the nick is registered and is in the auth file.*/           
+        if (strstr(line, nick)) {
+            registered = 1;
+            break;
+        }
+    }
+        
+    if (registered) {
+        char *fpass = strchr(line, ':') + 1;
+        remove_nl(fpass);
+        if ((pass = strtok(NULL, ":")) == NULL) {
+            server_send(0, uid, "\r\e[34m * This nick is registered. No password supplied.\e[0m\n");
+            client[uid]->mode = 2;
+            set = 0;
+        } else {
+            if (strcmp(fpass, pass) == 0) {
+                strcpy(client[uid]->nick, nick);
+                client[uid]->mode = 3;
+                set = 1;
+            } else {
+                server_send(0, uid, "\r\e[34m * Wrong password.\e[0m\n");
+                client[uid]->mode = 2;
+                set = 0;
+            }
+        }
+    } else {
+        strcpy(client[uid]->nick, nick);
+        client[uid]->mode = 2;
+        set = 1;
+    }       
+    fclose(auth_fp);
+    return set;
 }

@@ -11,17 +11,19 @@ void remove_nl(char *arg)
     }                                            
 }
 
-int cmd_nick(int type, int uid, char *nick)
+int cmd_nick(int uid, char *nick)
 {
     if (nick == NULL) {
-        server_send(0, uid, "%s\n", "usage: /nick nickname");
+        server_send(0, uid, "\r\e[34m * Usage: /nick nickname or nick:pass\e[0m\n");
         return 0;
     }
-    remove_nl(nick);
+    
     char oldnick[16];
     strncpy(oldnick, client[uid]->nick, 16);
-    strncpy(client[uid]->nick, nick, 16);
-    if (type) server_send(2, 0, " \e[34m* %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
+    
+    if (nick_reg(uid, nick)) {
+        server_send(2, 0, " \e[34m* %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
+    }
     return 1;
 }
 
