@@ -1,5 +1,5 @@
-#ifndef CLIENTS_H
-#define CLIENTS_H
+#ifndef SERVER_H
+#define SERVER_H
 
 #include "config.h"
 
@@ -56,7 +56,7 @@ unsigned int connected;
 void init_clients();
 void accept_clients(); /* Main loop */
 void server_send(int mode, int uid, const char *format, ...); /* Send messages */
-int nick_reg(int uid, char *authstr);
+int nick_set(int uid, char *authstr);
 void *handle_client();
 
 #endif

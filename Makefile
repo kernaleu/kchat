@@ -1,8 +1,8 @@
 LDFLAGS=-pthread
 
-all: server
+all: kchat
 
-server: command.c clients.c
+kchat: command.c server.c
 
 clean:
-	rm -f server
+	rm -f kchat
