@@ -11,6 +11,18 @@ void remove_nl(char *arg)
     }                                            
 }
 
+/* returns line if the creds are found. */
+int is_registered(FILE *fp, char *nick, char *line) 
+{
+    char str[17];
+    while (fgets(line, bufsize, fp) != NULL) {
+        if (strstr(line, strcat(strcpy(str, nick), ":"))) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void cmd_nick(int uid, char *nick)
 {
     if (nick == NULL) {
@@ -38,3 +50,4 @@ void list_users(int uid)
 
     server_send(0, uid, "%c", '\n');
 }
+

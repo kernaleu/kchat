@@ -190,23 +190,18 @@ int nick_set(int uid, char *authstr)
     char *nick;
     char *pass;
     FILE *auth_fp = fopen("auth.txt", "ra");
-    char line[1024];
-    int registered = 0, set = 0;
+    char line[bufsize];
+    int reg = 0, set = 0;
 
     remove_nl(authstr);
 
     if ((nick = strtok(authstr, ":")) == NULL) {
         nick = authstr;
     }
-    while (fgets(line, bufsize, auth_fp) != NULL) {
-        /* the nick is registered and is in the auth file.*/           
-        if (strstr(line, nick)) {
-            registered = 1;
-            break;
-        }
-    }
+    
+    reg = is_registered(auth_fp, nick, line);
         
-    if (registered) {
+    if (reg) {
         char *fpass = strchr(line, ':') + 1;
         remove_nl(fpass);
         if ((pass = strtok(NULL, ":")) == NULL) {
