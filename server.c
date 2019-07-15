@@ -141,6 +141,8 @@ void *handle_client(void *arg)
                     list_users(client->id);
                 } else if (strcmp("/register", buf) == 0) {
                     nick_reg(client->id, arg);
+                } else if (strcmp("/dm", cmd) == 0) {
+                    direct_msg(client->id, arg);
                 } else {
                     server_send(0, client->id, "%s\n", "unknown command");
                 }

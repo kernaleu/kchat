@@ -11,6 +11,22 @@ void remove_nl(char *arg)
     }                                            
 }
 
+void direct_msg(int uid, char *arg)
+{
+    // Parse arg into nick and the actual message.
+}
+
+int resolve_nick(char *nick)
+{
+    for (int i = 0; i < maxcli; i++) {
+        if (strcmp(client[i]->nick, nick) == 0) {
+            return i;
+        }
+    }
+    // Queried nick didn't match any.
+    return -1;
+}
+
 /* returns line if the creds are found. */
 int is_registered(FILE *fp, char *nick, char *line) 
 {
@@ -50,4 +66,5 @@ void list_users(int uid)
 
     server_send(0, uid, "%c", '\n');
 }
+
 
