@@ -43,13 +43,13 @@ void cmd_nick(int uid, char *nick)
 {
     if (nick == NULL) {
         server_send(0, uid, "\r\e[34m * Usage: /nick nickname or nick:pass\e[0m\n");
-    }
+    } else {
+        char oldnick[16];
+        strncpy(oldnick, client[uid]->nick, 16);
     
-    char oldnick[16];
-    strncpy(oldnick, client[uid]->nick, 16);
-    
-    if (nick_set(uid, nick)) {
-        server_send(2, 0, " \e[34m* %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
+        if (nick_set(uid, nick)) {
+            server_send(2, 0, " \e[34m* %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
+        }
     }
 }
 
