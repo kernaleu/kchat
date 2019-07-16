@@ -32,7 +32,7 @@ int is_registered(FILE *fp, char *nick, char *line)
 {
     char str[17];
     while (fgets(line, bufsize, fp) != NULL) {
-        if (strstr(line, strcat(strcpy(str, nick), ":"))) {
+        if (strstr(line, strcat(strncpy(str, nick, 16), ":"))) {
             return 1;
         }
     }

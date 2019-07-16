@@ -212,7 +212,7 @@ int nick_set(int uid, char *authstr)
             set = 0;
         } else {
             if (strcmp(fpass, pass) == 0) {
-                strcpy(client[uid]->nick, nick);
+                strncpy(client[uid]->nick, nick, 16);
                 client[uid]->mode = 3;
                 set = 1;
             } else {
@@ -222,10 +222,11 @@ int nick_set(int uid, char *authstr)
             }
         }
     } else {
-        strcpy(client[uid]->nick, nick);
+        strncpy(client[uid]->nick, nick, 16);
         client[uid]->mode = 2;
         set = 1;
     }       
     fclose(auth_fp);
+
     return set;
 }
