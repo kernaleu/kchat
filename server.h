@@ -10,6 +10,15 @@
 
 #include <netinet/in.h> 
 
+#define ONLY 0
+#define EXCEPT 1
+#define EVERYONE 2
+
+#define FREE 0
+#define BIN 1
+#define GUEST 2
+#define AUTH 3
+
 /*
  * mode:
  *   0. Free (no user is connected)

@@ -17,7 +17,7 @@ void err_exit(char *s)
 
 void cleanup()
 {
-    server_send(3, 0, " * Shutting down server\n");
+    server_send(EVERYONE, 0, "\r * Shutting down server\n");
     printf("exiting...\n");
     for (int i = 0; i < MAXCLI; i++) {
         close(client[i]->connfd);

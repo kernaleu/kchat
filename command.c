@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include "server.h"
 #include "command.h"
 
@@ -28,10 +29,10 @@ int resolve_nick(char *nick)
 }
 
 /* returns line if the creds are found. */
-int is_registered(FILE *fp, char *nick, char *line) 
+int is_registered(int fd, char *nick, char *line) 
 {
     char str[17];
-    while (fgets(line, bufsize, fp) != NULL) {
+    while (read(fd, line, bufsize) > 0) {
         if (strstr(line, strcat(strncpy(str, nick, 16), ":"))) {
             return 1;
         }
@@ -42,13 +43,13 @@ int is_registered(FILE *fp, char *nick, char *line)
 void cmd_nick(int uid, char *nick)
 {
     if (nick == NULL) {
-        server_send(0, uid, "\r\e[34m * Usage: /nick nickname or nick:pass\e[0m\n");
+        server_send(ONLY, uid, "\r\e[34m * Usage: /nick nickname or nick:pass\e[0m\n");
     } else {
         char oldnick[16];
         strncpy(oldnick, client[uid]->nick, 16);
     
         if (nick_set(uid, nick)) {
-            server_send(2, 0, " \e[34m* %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
+            server_send(EVERYONE, 0, " \e[34m* %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
         }
     }
 }
@@ -60,11 +61,11 @@ void list_users(int uid)
 {
     for (int i = 0; i <= maxcli && client[i]->mode != 0; i++) {
         if (i % 5 == 0 && i != 0) 
-            server_send(0, uid, "%c", '\n');
-        server_send(0, uid, "%s\t ", client[i]->nick);
+            server_send(ONLY, uid, "%c", '\n');
+        server_send(ONLY, uid, "%s\t ", client[i]->nick);
     }
 
-    server_send(0, uid, "%c", '\n');
+    server_send(ONLY, uid, "%c", '\n');
 }
 
 

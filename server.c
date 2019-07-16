@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <arpa/inet.h>
 #include "server.h"
 #include "command.h"
@@ -15,7 +17,7 @@ void init_clients()
     client = malloc(sizeof(client_t *) * maxcli);
     for (int i = 0; i < maxcli; i++) {
         client[i] = malloc(sizeof(client_t));
-        client[i]->mode = 0;
+        client[i]->mode = FREE;
     }
 }
 
@@ -34,18 +36,16 @@ void accept_clients()
         if (connected < maxcli) {
             connected++;
             for (int i = 0; i < maxcli; i++) {
-                if (client[i]->mode == 0) {
+                if (client[i]->mode == FREE) {
                     pthread_t tid;
                     /* Fill in the client struct */
                     client[i]->id = i;
-                    client[i]->mode = 1; /* Binary mode is default */
-                    /* TODO: Move this part out of here (Because of binary mode) */
+                    client[i]->mode = BIN; /* Binary mode is default */
                     client[i]->color = rand() % 5 + 31;
                     client[i]->connfd = connfd;
                     client[i]->addr = cli_addr;
                     snprintf(client[i]->nick, 16, "guest-%d", i);
                     memset(client[i]->params, 0, PARAMS_SIZE);
-                    /* --------------------------------------------------------- */
                     pthread_create(&tid, NULL, handle_client, client[i]);
                     break;
                 }
@@ -54,7 +54,6 @@ void accept_clients()
              printf("(srv) Max client number reached. Closing descriptor: %s.\n", inet_ntoa(cli_addr.sin_addr));
              close(connfd);
         }
-        sleep(1);
     }
 }
 
@@ -62,72 +61,64 @@ void *handle_client(void *arg)
 {
     client_t *client = (client_t *)arg;
 
-    int netread, auth = 1, filemode = 0;
-    char buf[bufsize], filename[5];
-
-    FILE *f;
+    ssize_t bytesread;
+    char buf[bufsize];
     
-    char authstr[bufsize];
-    read(client->connfd, authstr, bufsize-1);
-    nick_set(client->id, authstr);
+    int fd;
+    char filename[5] = {0};
 
-    server_send(2, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick, connected);
-    
     /* Get input from client */
-    while ((netread = recv(client->connfd, buf, bufsize-1, 0)) > 0) {
-        buf[netread] = '\0';
+    while ((bytesread = recv(client->connfd, buf, bufsize, 0)) > 0) {
 
-        /* Check if we are still in binary mode */
-        /* if (client->mode == 1) {
-            if (buf[0] == '$') { // If 1st char is '$' it has to be binary mode 
-                printf("dbg: Yes 1st char is indeed '$'.\n");
-                if (buf[1] == '\n') { // This is upload mode 
-                    printf("dbg: Yes 2nd char is indeed '\\n' this is upload mode.\n");
-                    if (filemode == 0) {
-                        printf("dbg: Opening file for write.\n");
-                        snprintf(filename, 5, "test"); // TODO: Generate filename here 
-                        f = fopen(filename, "a");
-                        filemode = 1;
-                    }
-                } else { // This is download mode 
-                    printf("dbg: This is download mode.\n");
-                    for (int i = 1; buf[i] != '\n'; i++) { // File id starts after '$' and ends before '\n' 
-                        if (i < 6) {
-                            filename[i - 1] = buf[i]; // File id can't be larger than 5 characters (so we keep track of it) 
-                            printf("dbg: %d %s\n", i, filename);
-                        } else {
-                            printf("dbg: %d %s Smh wrong with provided name going back to guest mode.\n", i, filename);
-                            client->mode = 2;
-                            break;
-                        }
-                    }
-                    // Open file 
-                    printf("dbg: Opening file (%s) for read.\n", filename);
-                    f = fopen(filename, "a");
-                    int fileread, bufsize2 = bufsize;
-
-                    // Get file size 
-                    fseek(f, 0, SEEK_END);
-                    long fs = ftell(f);
-                    fseek(f, 0, SEEK_SET);
-
-                    printf("dbg: Opened file size is %dl.\n", fs);
-
-                    // Send file 
-                    while ((fileread = read(f, &buf, bufsize)) > 0) {
-                        if (fs > bufsize) fs -= bufsize;
-                        else bufsize2 = fs;
-                        write(client->connfd, buf, bufsize2);
-                    }
-
-                    // Close file
-                    fclose(f);
-                } 
-            } else { // If 1st character is not '$' go to guest mode 
-                client->mode = 2;
+        if (client->mode == BIN) {
+            /* Do auth */
+            if (buf[0] == '@') {
+                puts("* Checking credentials..."); ///
+                nick_set(client->id, buf);
+                server_send(EVERYONE, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick, connected);
             }
-        } */
+            /* Download file */
+            else if (buf[0] == '$') {
+                puts("* We are in download mode..."); ///
+                for (int i = 1; buf[i] != '\n'; i++) { // File id starts after '$' and ends before '\n'
+                    if (i < 6) {
+                        filename[i - 1] = buf[i]; // File id can't be larger than 5 characters (so we keep track of it) 
+                    }
+                    else {
+                        server_send(ONLY, client->id, " * File id is too large!\n");
+                        close(client->connfd);
+                    }
+                }
+                fd = open(filename, O_RDONLY);
+                if (fd) {
+                    while ((bytesread = read(fd, buf, bufsize)) > 0) {
+                        write(client->connfd, buf, bytesread);
+                    }
+                    close(fd);
+                }
+                close(client->connfd);
+            }
+            else {
+                /* TODO: replace "test" with generated filename. */
+                fd = open("test", O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+                server_send(ONLY, client->id, "$test\n");
 
+                write(fd, buf, bytesread);
+
+                while ((bytesread = recv(client->connfd, buf, bufsize, 0)) > 0) {
+                    write(fd, buf, bytesread);
+                }
+
+                close(fd);
+                /* TODO: send out generated filename. */
+                server_send(ONLY, client->id, "$test\n");
+                close(client->connfd);
+            }
+        }
+
+        if (bytesread < bufsize) {
+            buf[bytesread + 1] = '\0';
+        }
         if (strlen(buf) > 1) { /* Block empty messages */
             /* Handle commands */
             if (buf[0] == '/') {
@@ -144,18 +135,18 @@ void *handle_client(void *arg)
                 } else if (strcmp("/dm", cmd) == 0) {
                     direct_msg(client->id, arg);
                 } else {
-                    server_send(0, client->id, "%s\n", "unknown command");
+                    server_send(ONLY, client->id, "\r\e[34m * Unknown command.\n");
                 }
             } else {
                 /* Send message */
-                server_send(1, client->id, "\r\e[1;%dm%s\e[0m: %s", client->color, client->nick, buf);
+                server_send(EXCEPT, client->id, "\r\e[1;%dm%s\e[0m: %s", client->color, client->nick, buf);
             }
         }
     }
 
     client->mode = 0;
     connected--;
-    server_send(2, 0, "\r\e[34m * %s left. (connected: %d)\e[0m\n", client->nick, connected);
+    server_send(EXCEPT, client->id, "\r\e[34m * %s left. (connected: %d)\e[0m\n", client->nick, connected);
     pthread_detach(pthread_self());
     return NULL;
 }
@@ -178,7 +169,7 @@ void server_send(int mode, int uid, const char *format, ...)
         write(client[uid]->connfd, buf, strlen(buf));
     } else {
         for (int i = 0; i < maxcli; i++) {
-            if (client[i]->mode > 1) {
+            if (client[i]->mode > BIN) {
                 if (mode == 2 || i != uid) {
                     write(client[i]->connfd, buf, strlen(buf));
                 }
@@ -191,42 +182,43 @@ int nick_set(int uid, char *authstr)
 {
     char *nick;
     char *pass;
-    FILE *auth_fp = fopen("auth.txt", "ra");
+    int auth_fd = open("auth.txt", O_RDONLY);
     char line[bufsize];
     int reg = 0, set = 0;
 
+    authstr++;
     remove_nl(authstr);
 
     if ((nick = strtok(authstr, ":")) == NULL) {
         nick = authstr;
     }
-    
-    reg = is_registered(auth_fp, nick, line);
-        
+
+    reg = is_registered(auth_fd, nick, line);
+
     if (reg) {
         char *fpass = strchr(line, ':') + 1;
         remove_nl(fpass);
         if ((pass = strtok(NULL, ":")) == NULL) {
-            server_send(0, uid, "\r\e[34m * This nick is registered. No password supplied.\e[0m\n");
-            client[uid]->mode = 2;
+            server_send(ONLY, uid, "\r\e[34m * This nick is registered. No password supplied.\e[0m\n");
+            client[uid]->mode = GUEST;
             set = 0;
         } else {
             if (strcmp(fpass, pass) == 0) {
                 strncpy(client[uid]->nick, nick, 16);
-                client[uid]->mode = 3;
+                client[uid]->mode = AUTH;
                 set = 1;
             } else {
-                server_send(0, uid, "\r\e[34m * Wrong password.\e[0m\n");
-                client[uid]->mode = 2;
+                server_send(ONLY, uid, "\r\e[34m * Wrong password.\e[0m\n");
+                client[uid]->mode = GUEST;
                 set = 0;
             }
         }
     } else {
         strncpy(client[uid]->nick, nick, 16);
-        client[uid]->mode = 2;
+        client[uid]->mode = GUEST;
         set = 1;
-    }       
-    fclose(auth_fp);
+    }
 
+    close(auth_fd);
     return set;
 }
