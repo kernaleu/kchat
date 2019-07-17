@@ -26,7 +26,6 @@ void accept_clients()
     int connfd;
     struct sockaddr_in cli_addr;
     
-    /* accept clients */
     while (1) {
         socklen_t client_len = sizeof(cli_addr);
         connfd = accept(sockfd, (struct sockaddr *)&cli_addr, &client_len);
@@ -189,25 +188,34 @@ int nick_set(int uid, char *authstr)
     authstr++;
     remove_nl(authstr);
 
+    /* Check if the authstr is in the format of nick:pass then split nick
+     * Else set nick to authstr */
     if ((nick = strtok(authstr, ":")) == NULL) {
         nick = authstr;
     }
 
     reg = is_registered(auth_fd, nick, line);
-
+    
+    /* Nick is registered */    
     if (reg) {
+        /* strchr returns a pointer to where ':' is, increment by 1 to get to the password */
         char *fpass = strchr(line, ':') + 1;
         remove_nl(fpass);
+        
+        /* Try to split authstr from before to get what's after ":" */
         if ((pass = strtok(NULL, ":")) == NULL) {
+            /* Authstr only consists of nick and isn't in the nick:pass format */
             server_send(ONLY, uid, "\r\e[34m * This nick is registered. No password supplied.\e[0m\n");
             client[uid]->mode = GUEST;
             set = 0;
-        } else {
+        } else {    /* Password is supplied */
             if (strcmp(fpass, pass) == 0) {
+                /* Correct pass, set the nick */
                 strncpy(client[uid]->nick, nick, 16);
                 client[uid]->mode = AUTH;
                 set = 1;
             } else {
+                /* Incorrect pass, complain */
                 server_send(ONLY, uid, "\r\e[34m * Wrong password.\e[0m\n");
                 client[uid]->mode = GUEST;
                 set = 0;
@@ -220,5 +228,8 @@ int nick_set(int uid, char *authstr)
     }
 
     close(auth_fd);
+    
+    /* Returns 1 if nick is set
+     * Otherwise 0 */
     return set;
 }

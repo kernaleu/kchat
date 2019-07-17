@@ -24,13 +24,14 @@ int resolve_nick(char *nick)
             return i;
         }
     }
-    // Queried nick didn't match any.
+    /* Queried nick didn't match any. */
     return -1;
 }
 
-/* returns line if the creds are found. */
+/* Check if the nickname is in the auth file */
 int is_registered(int fd, char *nick, char *line) 
 {
+    /* Max length allowed for nick is 16, + 1 for : */
     char str[17];
     while (read(fd, line, bufsize) > 0) {
         if (strstr(line, strcat(strncpy(str, nick, 16), ":"))) {
