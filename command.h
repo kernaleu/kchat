@@ -1,6 +1,8 @@
-void cmd_nick(int uid, char *nick);
-void list_users(int uid);
-int is_registered(int fd, char *nick, char *line);
-void nick_reg(int uid, char *nick);
-void direct_msg(int uid, char *arg);
+void cmd_login(int uid, char *arg);
+void cmd_list(int uid);
+void cmd_dm(int uid, char *arg);
+void cmd_register(int uid, char *arg); /* Placeholder*/
+
+int find_pass(char *nick, char *pass);
 void remove_nl(char *arg);
+int resolve_nick(char *nick);

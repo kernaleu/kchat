@@ -2,7 +2,7 @@ LDFLAGS=-pthread
 
 all: kchat
 
-kchat: command.c server.c
+kchat: $(wildcard *.c)
 
 clean:
 	rm -f kchat

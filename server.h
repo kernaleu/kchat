@@ -1,18 +1,7 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "config.h"
-
-/* netinet included here because we have a struct member of type sockaddr_in.
-   if we hadn't included this here then we would have to include this in
-   every other .c file this header is used in even though it's completely
-   unrelated to the .c file's contents. */
-
-#include <netinet/in.h> 
-
-#define ONLY 0
-#define EXCEPT 1
-#define EVERYONE 2
+#include "common.h"
 
 #define FREE 0
 #define BIN 1
@@ -64,8 +53,8 @@ unsigned int connected;
 
 void init_clients();
 void accept_clients(); /* Main loop */
-void server_send(int mode, int uid, const char *format, ...); /* Send messages */
-int nick_set(int uid, char *authstr);
+int user_login(int uid, char *str);
+
 void *handle_client();
 
 #endif

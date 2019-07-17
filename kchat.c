@@ -1,10 +1,4 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/socket.h>  
-#include <signal.h>
-#include "server.h" // <netinet/in.h>
-#include "config.h"
+#include "common.h"
 
 /* Server socket descriptor */
 int sockfd;

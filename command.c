@@ -1,77 +1,38 @@
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include "server.h"
-#include "command.h"
+#include "common.h"
 
-void remove_nl(char *arg)
-{
-    for (int i = 0; arg[i] != '\0'; i++) {
-        if (arg[i] == '\n' || arg[i] == '\r')
-            arg[i] = '\0';
-    }                                            
-}
-
-int resolve_nick(char *nick)
-{
-    for (int i = 0; i < maxcli; i++) {
-        if (strcmp(client[i]->nick, nick) == 0) {
-            return i;
-        }
-    }
-    /* Queried nick didn't match any. */
-    return -1;
-}
-
-void direct_msg(int uid, char *arg)
+void cmd_dm(int uid, char *arg)
 {
     /* Usage: /dm nick msg */
     char *nick = strtok(arg, " ");
     char *msg = strtok(NULL, " ");
-    int to_id = resolve_nick(nick);
-    puts(arg);
+    int to_id = resolve_nick(arg);
     server_send(ONLY, to_id, "\r[DM] \e[1;%dm%s\e[0m: %s", client[uid]->color, client[uid]->nick, msg);
 }
 
-/* Check if the nickname is in the auth file */
-int is_registered(int fd, char *nick, char *line) 
+void cmd_login(int uid, char *arg)
 {
-    /* Max length allowed for nick is 16, + 1 for : */
-    char str[17];
-    while (read(fd, line, bufsize) > 0) {
-        if (strstr(line, strcat(strncpy(str, nick, 16), ":"))) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-void cmd_nick(int uid, char *nick)
-{
-    if (nick == NULL) {
-        server_send(ONLY, uid, "\r\e[34m * Usage: /nick nickname or nick:pass\e[0m\n");
+    if (arg == NULL) {
+        server_send(ONLY, uid, "\r\e[34m * Usage: /login nick or nick:pass\e[0m\n");
     } else {
         char oldnick[16];
         strncpy(oldnick, client[uid]->nick, 16);
     
-        if (nick_set(uid, nick)) {
+        if (user_login(uid, arg)) {
             server_send(EVERYONE, 0, " \e[34m* %s is now known as %s.\e[0m\n", oldnick, client[uid]->nick);
         }
     }
 }
 
-void nick_reg(int uid, char *authstr)
+void cmd_register(int uid, char *arg)
 {;}
 
-void list_users(int uid)
+void cmd_list(int uid)
 {
     for (int i = 0; i <= maxcli && client[i]->mode != 0; i++) {
-        if (i % 5 == 0 && i != 0) 
+        if (i % 5 == 0 && i != 0) {
             server_send(ONLY, uid, "%c", '\n');
+        }
         server_send(ONLY, uid, "%s\t ", client[i]->nick);
     }
-
     server_send(ONLY, uid, "%c", '\n');
 }
-
-
