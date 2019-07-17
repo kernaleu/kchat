@@ -1,9 +1,4 @@
 #include "common.h"
-//#include <stdio.h>
-//#include <string.h>
-//#include <stdarg.h>
-//#include <unistd.h>
-//#include "server.h"
 
 void remove_nl(char *str)
 {
