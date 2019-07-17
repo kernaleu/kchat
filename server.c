@@ -151,7 +151,7 @@ int find_pass(char *nick, char *pass)
 {
     int r = 0;
     size_t linesize = 274; /* nick(16) + ':' + pass_sha256(256) + '\n' = 274 */
-    char *line, *p;
+    char *line = NULL, *p;
     FILE *fp = fopen("auth.txt", "r");
 
     if (fp) {
@@ -168,5 +168,6 @@ int find_pass(char *nick, char *pass)
     } else {
         r = -1;
     }
+    free(line);
     return r;
 }
