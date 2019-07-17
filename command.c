@@ -12,11 +12,6 @@ void remove_nl(char *arg)
     }                                            
 }
 
-void direct_msg(int uid, char *arg)
-{
-    // Parse arg into nick and the actual message.
-}
-
 int resolve_nick(char *nick)
 {
     for (int i = 0; i < maxcli; i++) {
@@ -26,6 +21,16 @@ int resolve_nick(char *nick)
     }
     /* Queried nick didn't match any. */
     return -1;
+}
+
+void direct_msg(int uid, char *arg)
+{
+    /* Usage: /dm nick msg */
+    char *nick = strtok(arg, " ");
+    char *msg = strtok(NULL, " ");
+    int to_id = resolve_nick(nick);
+    puts(arg);
+    server_send(ONLY, to_id, "\r[DM] \e[1;%dm%s\e[0m: %s", client[uid]->color, client[uid]->nick, msg);
 }
 
 /* Check if the nickname is in the auth file */

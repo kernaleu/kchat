@@ -113,12 +113,15 @@ void *handle_client(void *arg)
                 server_send(ONLY, client->id, "$test\n");
                 close(client->connfd);
             }
+            memset(buf, 0, bufsize);
         }
 
         if (bytesread < bufsize) {
             buf[bytesread + 1] = '\0';
+            remove_nl(buf);
         }
-        if (strlen(buf) > 1) { /* Block empty messages */
+
+        if (strlen(buf) > 0) { /* Block empty messages */
             /* Handle commands */
             if (buf[0] == '/') {
                 remove_nl(buf); 
@@ -138,9 +141,10 @@ void *handle_client(void *arg)
                 }
             } else {
                 /* Send message */
-                server_send(EXCEPT, client->id, "\r\e[1;%dm%s\e[0m: %s", client->color, client->nick, buf);
+                server_send(EXCEPT, client->id, "\r\e[1;%dm%s\e[0m: %s\n", client->color, client->nick, buf);
             }
         }
+    //memset(buf, 0, bufsize);
     }
 
     client->mode = 0;
