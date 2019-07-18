@@ -51,7 +51,7 @@ void *handle_client(void *arg)
     ssize_t bytesread;
     char buf[bufsize];
 
-    recv(client->connfd, buf, bufsize, 0);
+    bytesread = recv(client->connfd, buf, bufsize, 0);
     switch (buf[0]) {
         case '@':
             client->mode = GUEST;
@@ -63,7 +63,7 @@ void *handle_client(void *arg)
             file_download(client->connfd, client->id, buf);
             break;
         default:
-            file_upload(client->connfd, client->id, buf);
+            file_upload(client->connfd, client->id, buf, bytesread);
     }
 
     /* Get input from client */

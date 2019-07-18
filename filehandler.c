@@ -5,7 +5,7 @@ void file_download(int connfd, int uid, char *buf)
     ssize_t bytesread;
     char fname[6] = {0}, path[12];
 
-    for (int i = 1; buf[i] != '\n'; i++ ) {
+    for (int i = 1; buf[i] != '\n'; i++) {
         if (i < 7) {
             fname[i - 1] = buf[i];
         } else {
@@ -16,34 +16,33 @@ void file_download(int connfd, int uid, char *buf)
     }
     snprintf(path, 12, "files/%s", fname);
     printf(" * path: \"%s\"\n", path);
-    int fd = open(path, O_RDONLY);
-    if (fd) {
-        while ((bytesread = read(fd, buf, bufsize)) > 0) {
+    FILE *fp = fopen(path, "rb");
+    if (fp) {
+        while ((bytesread = fread(buf, 1, bufsize, fp)) > 0) {
             write(connfd, buf, bytesread);
         }
-        close(fd);
+        fclose(fp);
     } else {
         server_send(ONLY, uid, " * Couldn't get file descriptor!\n");
     }
     close(connfd);
 }
 
-void file_upload(int connfd, int uid, char *buf)
+void file_upload(int connfd, int uid, char *buf, ssize_t bytesread)
 {
-    ssize_t bytesread;
     char fname[6] = {0}, path[12];
 
     snprintf(fname, 6, "test"); // TODO: Generate filename here.
     snprintf(path, 12, "files/%s", fname);
 
-    int fd = open(path, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-    if (fd) {
+    FILE *fp = fopen(path, "wb");
+    if (fp) {
         server_send(ONLY, uid, "$%s\n", fname);
-        write(fd, buf, bytesread);
+        fwrite(buf, bytesread, 1, fp);
         while ((bytesread = recv(connfd, buf, bufsize, 0)) > 0) {
-            write(fd, buf, bytesread);
+            fwrite(buf, 1, bytesread, fp);
         }
-        close(fd);
+        fclose(fp);
     } else {
         server_send(ONLY, uid, " * Couldn't create file.\n");
     }
