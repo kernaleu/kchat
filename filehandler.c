@@ -1,3 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include "config.h"
+#include "server.h"
 #include "common.h"
 
 void file_download(int connfd, int uid, char *buf)
@@ -48,4 +54,3 @@ void file_upload(int connfd, int uid, char *buf, ssize_t bytesread)
     }
     close(connfd);
 }
-

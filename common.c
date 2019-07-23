@@ -1,3 +1,10 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include "config.h"
+#include "server.h"
+#include "filehandler.h"
 #include "common.h"
 
 void remove_nl(char *str)

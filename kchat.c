@@ -1,3 +1,11 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>  
+#include <signal.h>
+#include "server.h"
+#include "config.h"
 #include "common.h"
 
 /* Server socket descriptor */
@@ -12,7 +20,7 @@ void err_exit(char *s)
 void cleanup()
 {
     server_send(EVERYONE, 0, "\r * Shutting down server\n");
-    printf("exiting...\n");
+    printf(" exiting...\n");
     for (int i = 0; i < MAXCLI; i++) {
         close(client[i]->connfd);
         free(client[i]);

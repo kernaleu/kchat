@@ -1,7 +1,8 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "common.h"
+#include <netinet/in.h>
+#include "config.h"
 
 #define FREE 0
 #define BIN 1

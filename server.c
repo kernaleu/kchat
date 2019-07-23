@@ -1,4 +1,18 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
+#include "server.h"
+#include "command.h"
 #include "common.h"
+#include "filehandler.h"
+#include "config.h"
 
 void init_clients()
 {
@@ -88,7 +102,7 @@ void *handle_client(void *arg)
                 } else if (strcmp("/dm", cmd) == 0) {
                     cmd_dm(client->id, arg);
                 } else {
-                    server_send(ONLY, client->id, "\r\e[34m * Unknown command.\n");
+                    server_send(ONLY, client->id, "\r\e[34m * Unknown command.\e[0m\n");
                 }
             } else {
                 /* Send message */

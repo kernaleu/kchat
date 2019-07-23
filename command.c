@@ -1,3 +1,8 @@
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include "server.h"
+#include "command.h"
 #include "common.h"
 
 void cmd_dm(int uid, char *arg)
