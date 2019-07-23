@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>  
 #include <signal.h>
@@ -33,11 +34,11 @@ void cleanup()
 void main(int argc, char *argv[])
 {
     /* Set default values if not specified in cli options */
-    port = PORT, bufsize = BUFSIZE, maxcli = MAXCLI; 
+    port = PORT, bufsize = BUFSIZE, maxcli = MAXCLI, motd = MOTD;
     
     /* usage: ./server -p [port] -b [buffsize] -m [maxclient] */
     int opt;
-    while ((opt = getopt(argc, argv, "p:b:m:")) != -1) {
+    while ((opt = getopt(argc, argv, "p:b:c:m:")) != -1) {
         switch (opt) {
             case 'p':
                 port = atoi(optarg);
@@ -49,8 +50,10 @@ void main(int argc, char *argv[])
                     bufsize = 20;
                 }
                 break;
-            case 'm':
+            case 'c':
                 maxcli = atoi(optarg);
+            case 'm':
+                motd = optarg;
         }
     }
     

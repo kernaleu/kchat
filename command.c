@@ -31,6 +31,12 @@ void cmd_login(int uid, char *arg)
 void cmd_register(int uid, char *arg)
 {;}
 
+void cmd_motd(int uid, char *arg)
+{
+    ;
+
+}
+
 void cmd_list(int uid)
 {
     for (int i = 0; i <= maxcli && client[i]->mode != 0; i++) {

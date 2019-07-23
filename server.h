@@ -47,6 +47,7 @@ int port;
 int bufsize;
 int maxcli;
 int outbufsize;
+char *motd;
 
 extern int sockfd;
 
