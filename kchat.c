@@ -34,9 +34,10 @@ void cleanup()
 void main(int argc, char *argv[])
 {
     /* Set default values if not specified in cli options */
-    port = PORT, bufsize = BUFSIZE, maxcli = MAXCLI, motd = MOTD;
+    port = PORT, bufsize = BUFSIZE, maxcli = MAXCLI;
+    char tmp[bufsize];
     
-    /* usage: ./server -p [port] -b [buffsize] -m [maxclient] */
+    /* usage: ./server -p [port] -b [buffsize] -c [maxclient] -m [motd] */
     int opt;
     while ((opt = getopt(argc, argv, "p:b:c:m:")) != -1) {
         switch (opt) {
@@ -52,8 +53,10 @@ void main(int argc, char *argv[])
                 break;
             case 'c':
                 maxcli = atoi(optarg);
+                break;
             case 'm':
-                motd = optarg;
+                strcpy(tmp, optarg);
+                break;
         }
     }
     
@@ -79,7 +82,16 @@ void main(int argc, char *argv[])
 	if (listen(sockfd, 10) < 0) err_exit("listen");
 		
     printf(" * Listening on port %d\n", port);
-  
+
+    /* MOTD setup */
+    /* Move these somewhere */
+    /* Somewhere they won't feel lonely */
+    motd = malloc(sizeof(motd_t));
+    motd->msg = malloc(bufsize);
+
+    strcpy(motd->msg, tmp);
+    strcpy(motd->nick, "server");
+
     init_clients();
     accept_clients();
 }

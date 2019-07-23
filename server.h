@@ -41,13 +41,19 @@ typedef struct {
     struct sockaddr_in addr;
 } client_t;
 
+typedef struct {
+    char nick[16];
+    char *msg;
+    // store time here
+} motd_t;
+
 client_t **client;
+motd_t *motd;
 
 int port;
 int bufsize;
 int maxcli;
 int outbufsize;
-char *motd;
 
 extern int sockfd;
 

@@ -71,7 +71,7 @@ void *handle_client(void *arg)
             client->mode = GUEST;
             remove_nl(buf);
             user_login(client->id, buf + 1);
-            server_send(ONLY, client->id, "\r\e[34m%s\e[0m\n", MOTD);
+            server_send(ONLY, client->id, "\r\e[34m%s | set by %s\e[0m\n", motd->msg, motd->nick);
             server_send(EVERYONE, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick, connected);
             break;
         case '$':
