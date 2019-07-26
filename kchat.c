@@ -34,7 +34,24 @@ void cleanup()
 void main(int argc, char *argv[])
 {
     /* Set default values if not specified in cli options */
-    port = PORT, bufsize = BUFSIZE, maxcli = MAXCLI;
+    #ifdef PORT
+        port = PORT;
+    #else 
+        port = 0;
+    #endif
+
+    #ifdef BUFSIZE 
+        bufsize = BUFSIZE;
+    #else 
+        bufsize = 0;
+    #endif
+
+    #ifdef MAXCLI
+        maxcli = MAXCLI;
+    #else 
+        maxcli = 0;
+    #endif
+
     char tmp[bufsize]; 
     int set = 0;
     
@@ -63,7 +80,12 @@ void main(int argc, char *argv[])
     }
     
     if (!set) strncpy(tmp, MOTD, bufsize);
-        
+    
+    /* Argument checking */
+    if (!port) {puts("No port specified."); exit(EXIT_FAILURE);}
+    else if (!bufsize) {puts("No buffer size specified."); exit(EXIT_FAILURE);}
+    else if (!maxcli) {puts("No max client limit specified"); exit(EXIT_FAILURE);}
+
     outbufsize = bufsize + 30; /* Give some more space for formating */
     connected = 0;
     struct sockaddr_in serv_addr;

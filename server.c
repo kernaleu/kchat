@@ -131,9 +131,6 @@ int user_login(int uid, char *str)
     nick = strtok(str, ":");
     pass = strtok(NULL, ":");
 
-    printf(" * nick: \"%s\"\n", nick); ///
-    printf(" * pass: \"%s\"\n", pass); ///
-
     if (resolve_nick(nick) >= 0) {
         server_send(ONLY, uid, "\r\e[34m * User with this nick is already logged in.\e[0m\n");
     } else if (find_pass(nick, fpass)) {
