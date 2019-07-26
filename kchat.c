@@ -35,7 +35,8 @@ void main(int argc, char *argv[])
 {
     /* Set default values if not specified in cli options */
     port = PORT, bufsize = BUFSIZE, maxcli = MAXCLI;
-    char tmp[bufsize];
+    char tmp[bufsize]; 
+    int set = 0;
     
     /* usage: ./server -p [port] -b [buffsize] -c [maxclient] -m [motd] */
     int opt;
@@ -56,10 +57,13 @@ void main(int argc, char *argv[])
                 break;
             case 'm':
                 strcpy(tmp, optarg);
+                set = 1;
                 break;
         }
     }
     
+    if (!set) strncpy(tmp, MOTD, bufsize);
+        
     outbufsize = bufsize + 30; /* Give some more space for formating */
     connected = 0;
     struct sockaddr_in serv_addr;
@@ -84,13 +88,10 @@ void main(int argc, char *argv[])
     printf(" * Listening on port %d\n", port);
 
     /* MOTD setup */
-    /* Move these somewhere */
-    /* Somewhere they won't feel lonely */
     motd = malloc(sizeof(motd_t));
     motd->msg = malloc(bufsize);
 
-    strcpy(motd->msg, tmp);
-    strcpy(motd->nick, "server");
+    motd_set("server", tmp);
 
     init_clients();
     accept_clients();

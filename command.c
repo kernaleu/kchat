@@ -31,14 +31,6 @@ void cmd_login(int uid, char *arg)
 void cmd_register(int uid, char *arg)
 {;}
 
-void cmd_motd(int uid, char *arg)
-{
-    strcpy(motd->msg, arg);
-    strcpy(motd->nick, client[uid]->nick);
-    server_send(EVERYONE, 0, "\e[34m * %s | set by %s\e[0m\n", motd->msg, motd->nick);
-
-}
-
 void cmd_list(int uid)
 {
     for (int i = 0; i <= maxcli && client[i]->mode != 0; i++) {

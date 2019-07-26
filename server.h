@@ -2,6 +2,7 @@
 #define SERVER_H
 
 #include <netinet/in.h>
+#include <time.h>
 #include "config.h"
 
 #define FREE 0
@@ -44,7 +45,7 @@ typedef struct {
 typedef struct {
     char nick[16];
     char *msg;
-    // store time here
+    struct tm tm;
 } motd_t;
 
 client_t **client;
