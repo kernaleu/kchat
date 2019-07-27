@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 #include <sys/socket.h>
 #include "config.h"
 #include "server.h"
@@ -37,13 +38,14 @@ void file_download(int connfd, int uid, char *buf)
 void file_upload(int connfd, int uid, char *buf, ssize_t bytesread)
 {
     char fname[6] = {0}, path[12];
-
-    snprintf(fname, 6, "test"); // TODO: Generate filename here.
+    
+    srandom(time(0));
+    snprintf(fname, 6, "%d", random()); // TODO: Generate filename here.
     snprintf(path, 12, "files/%s", fname);
 
     FILE *fp = fopen(path, "wb");
     if (fp) {
-        server_send(ONLY, uid, "$%s\n", fname);
+        server_send(ONLY, uid, "Here is your file id: $%s\n", fname);
         fwrite(buf, bytesread, 1, fp);
         while ((bytesread = recv(connfd, buf, bufsize, 0)) > 0) {
             fwrite(buf, 1, bytesread, fp);
