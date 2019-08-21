@@ -57,10 +57,14 @@ void server_send(int mode, int uid, const char *format, ...)
 
 void motd_set(char *nick, char *msg)
 {
-    strncpy(motd->msg, msg, bufsize);
-    strncpy(motd->nick, nick, 16);
-    time_t t = time(NULL);
-    motd->tm = *localtime(&t);
+  //  if (client->rank != USER) {
+        strncpy(motd->msg, msg, bufsize);
+        strncpy(motd->nick, nick, 16);
+        time_t t = time(NULL);
+        motd->tm = *localtime(&t);
+  /*  } else {
+        server_send(ONLY, client->uid, "You don't have enough permission.");
+    } */
 }
 
 void motd_send()

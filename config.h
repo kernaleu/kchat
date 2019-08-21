@@ -2,7 +2,7 @@
 #define CONFIG_H
 
 #define BUFSIZE 512
-#define PORT 9999
+#define PORT 1337 
 #define MAXCLI 10
 #define MOTD "Welcome to kernal chat."
 
