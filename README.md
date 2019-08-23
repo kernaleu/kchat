@@ -4,22 +4,22 @@ Or any other TCP client. Yup.
 
 However, not having a specific client comes with some limitations. To fix the overlapping issue we recommend using rlwrap.
 
-`rlwrap -S "> " nc chat.kernal.xyz 1337`
+`rlwrap -S "> " nc localhost 1337`
 
 You can customize the prompt:
 
-`rlwrap -S "OwO: " nc chat.kernal.xyz 1337`
+`rlwrap -S "OwO: " nc localhost 1337`
 
 Enter `@username` or `@username:password` to get started.
 
 Upload files:
-`cat photo.png | nc -c chat.kernal.xyz 1337`
+`cat photo.png | nc -c localhost 1337`
 
 You can also upload output of commands:
-`ls -la | nc -c chat.kernal.xyz 1337`
+`ls -la | nc -c localhost 1337`
 
 Download files:
-`echo '$hello' | nc chat.kernal.xyz 1337 > file.png`
-`echo '$hello' | nc chat.kernal.xyz 1337 | feh -`
+`echo '$hello' | nc localhost 1337 > file.png`
+`echo '$hello' | nc localhost 1337 | feh -`
 
 I think you can think of other ways to use this :)
