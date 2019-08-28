@@ -17,6 +17,29 @@ void remove_nl(char *str)
     }
 }
 
+int splitarg(char str[], char cmd[], char arg[])
+{
+    int i, l = 0, hit = 0;
+    for (i = 0; str[i] != '\0'; i++) {
+        /* A command shall not contain space */
+        if (!hit) {
+            if (str[i] == ' ') {
+                hit = 1;
+                cmd[i] = '\0';
+                continue;
+            }
+            cmd[i] = str[i];
+        }
+        // TODO: add size checks to prevent bof
+        else {
+            arg[l] = str[i];
+            l++;
+        }
+    }
+    /* 0 will be returned if no arguments are given */
+    return hit;
+}
+
 int resolve_nick(char *nick)
 {
     for (int i = 0; i < maxcli; i++) {

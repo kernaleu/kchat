@@ -91,9 +91,10 @@ void *handle_client(void *arg)
         if (strlen(buf) > 0) { /* Block empty messages */
             /* Handle commands */
             if (buf[0] == '/') {
-                /* TODO: Make own function to split cmd and args */
-                char *cmd = strtok(buf, " ");
-                char *arg = strtok(NULL, " ");
+                char cmd[10];
+                char arg[256]; // if you change the size here dont forget to change it in the splitstr definition.
+                splitarg(buf, cmd, arg);
+ 
                 if (strcmp("/login", cmd) == 0) {
                     cmd_login(client->id, arg);
                 } else if (strcmp("/list", buf) == 0) {
@@ -108,6 +109,8 @@ void *handle_client(void *arg)
                 } else {
                     server_send(ONLY, client->id, "\r\e[34m * Unknown command.\e[0m\n");
                 }
+                memset(cmd, 0, sizeof(cmd));
+                memset(arg, 0, sizeof(arg));
             } else {
                 /* Send message */
                 server_send(EXCEPT, client->id, "\r\e[1;%dm%s\e[0m: %s\n", client->color, client->nick, buf);
