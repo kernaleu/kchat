@@ -71,7 +71,6 @@ void *handle_client(void *arg)
             client->mode = GUEST;
             remove_nl(buf);
             user_login(client->id, buf + 1);
-            motd_send();
             server_send(EVERYONE, 0, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", client->nick, connected);
             break;
         case '$':
@@ -103,9 +102,6 @@ void *handle_client(void *arg)
                     cmd_register(client->id, arg);
                 } else if (strcmp("/dm", cmd) == 0) {
                     cmd_dm(client->id, arg);
-                } else if (strcmp("/motd", cmd) == 0) {
-                    motd_set(client->nick, arg);
-                    motd_send();
                 } else {
                     server_send(ONLY, client->id, "\r\e[34m * Unknown command.\e[0m\n");
                 }

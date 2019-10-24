@@ -77,20 +77,3 @@ void server_send(int mode, int uid, const char *format, ...)
         }
     }
 }
-
-void motd_set(char *nick, char *msg)
-{
-  //  if (client->rank != USER) {
-        strncpy(motd->msg, msg, bufsize);
-        strncpy(motd->nick, nick, 16);
-        time_t t = time(NULL);
-        motd->tm = *localtime(&t);
-  /*  } else {
-        server_send(ONLY, client->uid, "You don't have enough permission.");
-    } */
-}
-
-void motd_send()
-{
-    server_send(EVERYONE, 0, "\e[34m * %s | set by %s %d:%d:%d\e[0m\n", motd->msg, motd->nick, motd->tm.tm_hour, motd->tm.tm_min, motd->tm.tm_sec);
-}                                                                                                                                                                                                                

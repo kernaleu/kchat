@@ -33,88 +33,58 @@ void cleanup()
 
 void main(int argc, char *argv[])
 {
-    port = 0;
-    bufsize = 0;
-    maxcli = 0;
+    /* Set default values if not specified in cli options */
+    #ifdef PORT
+        port = PORT;
+    #else 
+        port = 0;
+    #endif
 
-    allow_log = 0;
+    #ifdef BUFSIZE 
+        bufsize = BUFSIZE;
+    #else 
+        bufsize = 0;
+    #endif
 
-    char tmp[bufsize]; 
-    int set = 0;
-
-    /* usage: ./server -p [port] -b [buffsize] -c [maxclient] -m [motd] */
+    #ifdef MAXCLI
+        maxcli = MAXCLI;
+    #else 
+        maxcli = 0;
+    #endif
+    
+    /* usage: ./server -p [port] -b [buffsize] -c [maxclient] */
     int opt;
-    while ((opt = getopt(argc, argv, "p:b:c:m:l:")) != -1) {
+    while ((opt = getopt(argc, argv, "p:b:c:m:")) != -1) {
         switch (opt) {
             case 'p':
                 port = atoi(optarg);
                 break;
+            
             case 'b':
                 bufsize = atoi(optarg);
                 if (bufsize < 20) {
-                    printf("Buffer size must be at least 20!\n");
+                    printf("Buffer size must be at least 20\n");
                     bufsize = 20;
                 }
                 break;
+            
             case 'c':
                 maxcli = atoi(optarg);
                 break;
-            case 'm':
-                strcpy(tmp, optarg);
-                set = 1;
+           
+            default:
+                err_exit("Unknown arg");
                 break;
-            case 'l':
-                allow_log = 1;
-                log_path = optarg;
-                break;
+                
         }
     }
-     
+    
     /* Argument checking */
-    if (!port) {
-        printf("No port specified. "); 
-        #ifdef PORT
-            port = PORT;
-            printf("Using default ");
-            printf("port: %d\n", PORT);
-        #else
-            exit(EXIT_FAILURE);
-        #endif
-    }
+    if (!port) err_exit("No port specified.");
+    else if (!bufsize) err_exit("No buffer size specified.");
+    else if (!maxcli) err_exit("No max client limit specified");
 
-    if (!bufsize) {
-        printf("No buffer size specified. ");
-        #ifdef BUFSIZE
-            bufsize = BUFSIZE;
-            printf("Using default ");
-            printf("bufsize: %d\n", BUFSIZE);
-        #else
-            exit(EXIT_FAILURE);
-        #endif
-    }
-
-    if (!maxcli) {
-        printf("No max client limit specified. ");
-        #ifdef MAXCLI
-            maxcli = MAXCLI;
-            printf("Using default ");
-            printf("maxcli: %d\n", MAXCLI);
-        #else
-            exit(EXIT_FAILURE);
-        #endif
-    }
-
-    if (!set) { 
-        printf("MOTD was not set. ");     
-        #ifdef MOTD                       
-            printf("Using default ");   
-            strcpy(tmp, MOTD);  
-            printf("MOTD: %s\n", MOTD);   
-        #else                             
-            strcpy(tmp, "Welcome to Kernal Chat!");
-        #endif                            
-    }                                     
-
+       
     outbufsize = bufsize + 30; /* Give some more space for formating */
     connected = 0;
     struct sockaddr_in serv_addr;
@@ -137,12 +107,6 @@ void main(int argc, char *argv[])
 	if (listen(sockfd, 10) < 0) err_exit("listen");
 		
     printf(" * Listening on port %d\n", port);
-
-    /* MOTD setup */
-    motd = malloc(sizeof(motd_t));
-    motd->msg = malloc(bufsize);
-
-    motd_set("server", tmp);
 
     init_clients();
     accept_clients();

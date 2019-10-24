@@ -10,22 +10,12 @@
 #define GUEST 2
 #define AUTH 3
 
-/* TODO: user configurable ranks? */
-#define USER 0
-#define ROOT 1
-#define MOD 2
-
 /*
  * mode:
  *   0. Free (no user is connected)
  *   1. Binary transfer mode (used for sending/receiving files)
  *   2. Unregistered (user connected using guest account)
  *   3. Registered (user connected and entered auth hash)
- *
- * ranks:
- *   0. User (client with no special permissions)
- *   1. Root (client with total control of the server)
- *   2. Moderator (client that is given perms by root)
  *
  * params:
  *  [0]. beep:
@@ -47,20 +37,12 @@ typedef struct {
     int mode;
     int color;
     char nick[16];
-    int perms; /* TODO: UNIX-like octal permission system */
     int params[PARAMS_SIZE];
     int connfd;
     struct sockaddr_in addr;
 } client_t;
 
-typedef struct {
-    char nick[16];
-    char *msg;
-    struct tm tm;
-} motd_t;
-
 client_t **client;
-motd_t *motd;
 
 int port;
 int bufsize;
