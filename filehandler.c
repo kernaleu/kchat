@@ -40,7 +40,7 @@ void file_upload(int connfd, int uid, char *buf, ssize_t bytesread)
     char fname[6] = {0}, path[12];
     
     srandom(time(0));
-    snprintf(fname, 6, "%d", random()); // TODO: Generate filename here.
+    snprintf(fname, 6, "%ld", random()); // TODO: Generate filename here.
     snprintf(path, 12, "files/%s", fname);
 
     FILE *fp = fopen(path, "wb");

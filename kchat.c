@@ -31,7 +31,7 @@ void cleanup()
     exit(0);
 }
 
-void main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     /* Set default values if not specified in cli options */
     #ifdef PORT
@@ -79,7 +79,7 @@ void main(int argc, char *argv[])
         }
     }
     
-    /* Argument checking */
+    /* Argume:nt checking */
     if (!port) err_exit("No port specified.");
     else if (!bufsize) err_exit("No buffer size specified.");
     else if (!maxcli) err_exit("No max client limit specified");
@@ -110,4 +110,5 @@ void main(int argc, char *argv[])
 
     init_clients();
     accept_clients();
+    return 0;
 }

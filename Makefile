@@ -1,3 +1,5 @@
+CC=clang
+CFLAGS=-fsanitize=address
 LDFLAGS=-pthread
 
 all: kchat
