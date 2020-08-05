@@ -1,10 +1,12 @@
 CC=clang
 CFLAGS=-fsanitize=address
-LDFLAGS=-pthread
+
+SRCS = $(wildcard src/*.c)
 
 all: kchat
 
-kchat: $(wildcard *.c)
+kchat: $(SRCS)
+	$(CC) $(CFLAGS) $(SRCS) -o $@
 
 clean:
 	rm -f kchat
