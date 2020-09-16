@@ -37,22 +37,16 @@ void cmd_users(int id)
     server_send(ONLY, id, "\r\e[34m * Users (connected: %d): %s.\e[0m\n", connected, users);
 }
 
-/* 0. Ignore
- * 1. Return the line for further processing
- */
-int nick_exists(int mode, char *nick, ...)
+int nick_exists(char *nick, char *hash)
 {
-    va_list arg;
-    va_start(arg, nick);
     FILE *fp;
-    char *hash = NULL, *line = NULL;
+    char *line = NULL;
     size_t len = 0;
 
     if ((fp = fopen(AUTH_FILE, "r")) != NULL) {
         while (getline(&line, &len, fp) != -1) {
             if (strstr(line, nick)) {
-                if (mode) {
-                    hash = va_arg(arg, char *);
+                if (hash != NULL) {
                     strcpy(hash, line);
                     hash[strlen(hash)-1] = '\0';
                 }
@@ -60,7 +54,6 @@ int nick_exists(int mode, char *nick, ...)
             }
         }
     }
-    va_end(arg);
     return 0;
 }
 
@@ -71,7 +64,7 @@ void cmd_nick(int id, int argc, char *argv[])
         return;
     }
     
-    if (nick_exists(0, argv[1])) {
+    if (nick_exists(argv[1], NULL)) {
         server_send(ONLY, id, "\r\e[33m * This nickname is registered. Provide a password with /login.\e[0m\n");
         return;
     }
@@ -98,7 +91,7 @@ void cmd_register(int id, int argc, char *argv[])
         return;
 }
 
-    if (nick_exists(0, argv[1])) {
+    if (nick_exists(argv[1], NULL)) {
         server_send(ONLY, id, "\r\e[33m * This nickname has already been registered. Provide a password with /login.\e[0m\n");
         return;
     }
@@ -135,7 +128,7 @@ void cmd_login(int id, int argc, char *argv[])
     }
     
     char buf[100];
-    if (!nick_exists(1, argv[1], buf)) {
+    if (!nick_exists(argv[1], buf)) {
         server_send(ONLY, id, "\r\e[33m * Nickname isn't registered.\e[0m\n");
         return;
     }
