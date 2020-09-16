@@ -24,8 +24,7 @@
 #include <strings.h>
 
 /* initialize empty argc/argv struct */
-void
-argv_init(int *argc, char ***argv)
+void argv_init(int *argc, char ***argv)
 {
    if (NULL == (*argv = (char**) calloc(ARGV_MAX_ENTRIES, sizeof(char*))))
       err(1, "argv_init: argv calloc fail");
@@ -33,17 +32,14 @@ argv_init(int *argc, char ***argv)
    if (NULL == ((*argv)[0] = (char*) calloc(ARGV_MAX_TOKEN_LEN, sizeof(char))))
       err(1, "argv_init: argv[i] calloc fail");
 
-   bzero((*argv)[0], ARGV_MAX_TOKEN_LEN * sizeof(char));
+   memset((*argv)[0], 0, ARGV_MAX_TOKEN_LEN * sizeof(char));
    *argc = 0;
 }
 
 /* free all memory in an arc/argv */
-void
-argv_free(int *argc, char ***argv)
+void argv_free(int *argc, char ***argv)
 {
-   int i;
-
-   for (i = 0; i <= *argc; i++)
+   for (int i = 0; i <= *argc; i++)
       free((*argv)[i]);
 
    free(*argv);
@@ -51,12 +47,9 @@ argv_free(int *argc, char ***argv)
 }
 
 /* add a character to the end of the current entry in an argc/argv */
-void
-argv_addch(int argc, char **argv, int c)
+void argv_addch(int argc, char **argv, int c)
 {
-   int n;
-
-   n = strlen(argv[argc]);
+   int n = strlen(argv[argc]);
    if (ARGV_MAX_TOKEN_LEN - 1 == n)
       errx(1, "argv_addch: reached max token length (%d)", ARGV_MAX_TOKEN_LEN);
 
@@ -64,8 +57,7 @@ argv_addch(int argc, char **argv, int c)
 }
 
 /* complete the current entry in the argc/argv and setup the next one */
-void
-argv_finish_token(int *argc, char ***argv)
+void argv_finish_token(int *argc, char ***argv)
 {
    if (ARGV_MAX_ENTRIES - 1 == *argc)
       errx(1, "argv_finish_token: reached max argv entries(%d)", ARGV_MAX_ENTRIES);
@@ -77,7 +69,7 @@ argv_finish_token(int *argc, char ***argv)
    if (NULL == ((*argv)[*argc] = (char*) calloc(ARGV_MAX_TOKEN_LEN, sizeof(char))))
       err(1, "argv_finish_token: failed to calloc argv[i]");
 
-   bzero((*argv)[*argc], ARGV_MAX_TOKEN_LEN * sizeof(char));
+   memset((*argv)[*argc], 0, ARGV_MAX_TOKEN_LEN * sizeof(char));
 }
 
 /*
@@ -91,8 +83,7 @@ argv_finish_token(int *argc, char ***argv)
  * and the errmsg parameter is set to some appropriate error message and
  * both argc/argv are set to 0/NULL.
  */
-int
-str2argv(const char *str, int *argc, char ***argv, const char **errmsg)
+int str2argv(const char *str, int *argc, char ***argv, const char **errmsg)
 {
    bool in_token;
    bool in_container;
@@ -233,8 +224,7 @@ str2argv(const char *str, int *argc, char ***argv, const char **errmsg)
    return 0;
 }
 
-char *
-argv2str(int argc, char *argv[])
+char *argv2str(int argc, char *argv[])
 {
    char *result;
    int   len;
@@ -256,7 +246,7 @@ argv2str(int argc, char *argv[])
    /* allocate result */
    if (NULL == (result = (char*) calloc(len, sizeof(char))))
       err(1, "argv2str: calloc failed");
-   bzero(result, len);
+   memset(result, 0, len);
 
    /* build result */
    off = 0;

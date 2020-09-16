@@ -12,10 +12,10 @@
 
 static int bufinsize = BUF_IN_SIZE;
 static int bufoutsize = BUF_OUT_SIZE;
-static int maxclients = MAX_CLIENTS;
 static char *motd = MOTD;
 
 int sockfd;
+int maxclients = MAX_CLIENTS;
 int connected = 0;
 
 void quit() {
@@ -30,7 +30,7 @@ void quit() {
 }
 
 int main(int argc, char *argv[]) {
-    int connfd, id;
+    int conffd, connfd, id;
     fd_set descriptors;
     char buf[bufinsize + 1];
 
@@ -196,8 +196,14 @@ void command_handler(int id, char *str) {
         cmd_nick(id, argc, argv);
     else if (strcmp("/dm", argv[0]) == 0)
         cmd_dm(id, argc, argv);
+    else if (strcmp("/users", argv[0]) == 0)
+        cmd_users(id);
     else if (strcmp("/restart", argv[0]) == 0)
         quit();
+    else if (strcmp("/register", argv[0]) == 0)
+        cmd_register(id, argc, argv);
+    else if (strcmp("/login", argv[0]) == 0)
+        cmd_login(id, argc, argv);
     else
         server_send(ONLY, id, "\r\e[31m * Unknown command!\e[0m\n");
 

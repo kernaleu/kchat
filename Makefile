@@ -1,5 +1,5 @@
 CC=clang
-CFLAGS=-fsanitize=address
+CFLAGS=-lcrypt -fsanitize=address
 
 SRCS = $(wildcard src/*.c)
 
