@@ -21,8 +21,9 @@ int connected = 0;
 void quit() {
     puts("\r(serv) Shutting down...");
     server_send(EVERYONE, 0, "\r\e[34m * Server is shutting down...\e[0m\n");
-    for(int id = 0; id < maxclients; id++)
-        close(clients[id]->connfd);
+    for (int id = 0; id < maxclients; id++)
+        if (clients[id] != NULL)
+            close(clients[id]->connfd);
     close(sockfd);
     exit(0);
 }
@@ -33,10 +34,8 @@ int main(int argc, char *argv[]) {
     char buf[bufinsize + 1];
 
     clients = malloc(sizeof(client_t *) * maxclients);
-    for (id = 0; id < maxclients; id++) {
-        clients[id] = malloc(sizeof(client_t));
-        clients[id]->connfd = -1;
-    }
+    for (id = 0; id < maxclients; id++)
+        clients[id] = NULL;
 
     struct sockaddr_in serv_addr, cli_addr;
     int addrlen = sizeof(cli_addr);
@@ -70,9 +69,9 @@ int main(int argc, char *argv[]) {
         FD_ZERO(&descriptors);
         FD_SET(sockfd, &descriptors);
         int maxfd = sockfd;
+        /* Add all socket descriptors to the read list. */
         for (id = 0; id < maxclients; id++) {
-            /* If valid socket descriptor then add to read list. */
-            if (clients[id]->connfd > 0) {
+            if (clients[id] != NULL) {
                 FD_SET(clients[id]->connfd, &descriptors);
                 /* Find highest file descriptor, needed for the select function. */
                 if (clients[id]->connfd > maxfd)
@@ -90,7 +89,8 @@ int main(int argc, char *argv[]) {
             printf("(serv) New connection, sockfd: %d, ipaddr: %s, port: %d\n", connfd, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
             for (id = 0; id < maxclients; id++) {
                 /* If position is empty */
-                if (clients[id]->connfd == -1) {
+                if (clients[id] == NULL) {
+                    clients[id] = malloc(sizeof(client_t));
                     clients[id]->connfd = connfd;
                     clients[id]->color = rand() % 5 + 31;
                     snprintf(clients[id]->nick, 16, "guest-%d", id);
@@ -103,28 +103,31 @@ int main(int argc, char *argv[]) {
         }
         /* IO operations on other sockets. */
         for (id = 0; id < maxclients; id++) {
-            if (FD_ISSET(clients[id]->connfd, &descriptors)) {
-                ssize_t bytesread;
-                if ((bytesread = read(clients[id]->connfd, buf, bufinsize)) > 0) {
-                    buf[bytesread] = '\0';
-                    remove_nl(buf);
+            if (clients[id] != NULL) {
+                if (FD_ISSET(clients[id]->connfd, &descriptors)) {
+                    ssize_t bytesread;
+                    if ((bytesread = read(clients[id]->connfd, buf, bufinsize)) > 0) {
+                        buf[bytesread] = '\0';
+                        remove_nl(buf);
 
-                    /* Skip empty messages. */
-                    if (strlen(buf) == 0)
-                        continue;
-                    /* Handle commands. */
-                    if (buf[0] == '/')
-                        command_handler(id, buf);
-                    /* Send message. */
-                    else
-                        server_send(EXCEPT, id, "\r\e[1;%dm%s\e[0m: %s\n", clients[id]->color, clients[id]->nick, buf);
-                }
-                /* Client disconnected. */
-                else {
-                    close(clients[id]->connfd);
-                    clients[id]->connfd = -1;
-                    connected--;
-                    server_send(EXCEPT, id, "\r\e[34m * %s left. (connected: %d)\e[0m\n", clients[id]->nick, connected);
+                        /* Skip empty messages. */
+                        if (strlen(buf) == 0)
+                            continue;
+                        /* Handle commands. */
+                        if (buf[0] == '/')
+                            command_handler(id, buf);
+                        /* Send message. */
+                        else
+                            server_send(EXCEPT, id, "\r\e[1;%dm%s\e[0m: %s\n", clients[id]->color, clients[id]->nick, buf);
+                    }
+                    /* Client disconnected. */
+                    else {
+                        close(clients[id]->connfd);
+                        connected--;
+                        server_send(EXCEPT, id, "\r\e[34m * %s left. (connected: %d)\e[0m\n", clients[id]->nick, connected);
+                        free(clients[id]);
+                        clients[id] = NULL;
+                    }
                 }
             }
         }
@@ -149,13 +152,13 @@ void server_send(int mode, int id, const char *format, ...) {
         write(clients[id]->connfd, buf, strlen(buf));
     else
         for (int i = 0; i < maxclients; i++)
-            if ((mode == EVERYONE || i != id) && clients[i]->connfd > -1)
+            if ((mode == EVERYONE || i != id) && clients[i] != NULL)
                 write(clients[i]->connfd, buf, strlen(buf));
 }
 
 int resolve_nick(char *nick) {
     for (int id = 0; id < maxclients; id++)
-        if (strncmp(clients[id]->nick, nick, 16) == 0)
+        if (clients[id] != NULL && strncmp(clients[id]->nick, nick, 16) == 0)
             return id;
     /* Queried nick didn't match any. */
     return -1;

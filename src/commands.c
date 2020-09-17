@@ -29,7 +29,7 @@ void cmd_users(int id)
     users[0] = '\0';
 
     for (int i = 0; i < maxclients; i++)
-        if (clients[i]->connfd != -1) {
+        if (clients[i] != NULL) {
             if (users[0] != '\0')
                 strcat(users, ", ");
             strcat(users, clients[i]->nick);
