@@ -39,22 +39,31 @@ void cmd_users(int id)
 
 int nick_exists(char *nick, char *hash)
 {
-    FILE *fp;
-    char *line = NULL;
-    size_t len = 0;
+    int ret = 0;
+    FILE *fp = fopen(AUTH_FILE, "r");
 
-    if ((fp = fopen(AUTH_FILE, "r")) != NULL) {
-        while (getline(&line, &len, fp) != -1) {
-            if (strstr(line, nick)) {
+    if (fp != NULL) {
+        char *line = NULL, delim[] = ":";
+        size_t len = 0;
+        ssize_t nread;
+        while ((nread = getline(&line, &len, fp)) != -1) {
+            line[nread - 1] = '\0';
+            char *token = strtok(line, delim);
+            //printf("(serv) strtok nick = \"%s\"\n", token);
+            if (!strcmp(nick, token)) {
                 if (hash != NULL) {
-                    strcpy(hash, line);
-                    hash[strlen(hash)-1] = '\0';
+                    token = strtok(NULL, delim);
+                    //printf("(serv) strtok hash = \"%s\"\n", token);
+                    strcpy(hash, token);
                 }
-                return 1;
+                ret = 1;
+                break;
             }
         }
+        free(line);
+        fclose(fp);
     }
-    return 0;
+    return ret;
 }
 
 void cmd_nick(int id, int argc, char *argv[])
@@ -63,12 +72,17 @@ void cmd_nick(int id, int argc, char *argv[])
         server_send(ONLY, id, "\r\e[33m * Usage: /nick nickname\e[0m\n");
         return;
     }
-    
+
+    if (strchr(argv[1], ':') != NULL) {
+        server_send(ONLY, id, "\r\e[33m * Nicknames mustn't contain ':'.\e[0m\n");
+        return;
+    }
+
     if (nick_exists(argv[1], NULL)) {
         server_send(ONLY, id, "\r\e[33m * This nickname is registered. Provide a password with /login.\e[0m\n");
         return;
     }
-    
+
     char oldnick[17];
     strncpy(oldnick, clients[id]->nick, 16);
     oldnick[16]= '\0';
@@ -85,24 +99,23 @@ void cmd_register(int id, int argc, char *argv[])
         server_send(ONLY, id, "\r\e[33m * Usage: /register nickname password\e[0m\n");
         return;
     }
-    
-    if (strchr(argv[2], ':')) {
-        server_send(ONLY, id, "\r\e[33m * Nicknames musn't contain ':'.\e[0m\n");
+
+    if (strchr(argv[1], ':') != NULL) {
+        server_send(ONLY, id, "\r\e[33m * Nicknames mustn't contain ':'.\e[0m\n");
         return;
-}
+    }
 
     if (nick_exists(argv[1], NULL)) {
         server_send(ONLY, id, "\r\e[33m * This nickname has already been registered. Provide a password with /login.\e[0m\n");
         return;
     }
-    
+
     unsigned char ubytes[16];
     char salt[20];
     const char *const saltchars = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    char *hash;
 
     if (getentropy(ubytes, sizeof ubytes)) {
-        perror ("getentropy");
+        perror("getentropy");
         return;
     }
 
@@ -112,12 +125,13 @@ void cmd_register(int id, int argc, char *argv[])
     for (int i = 0; i < 16; i++)
         salt[3+i] = saltchars[ubytes[i] & 0x3f];
     salt[19] = '\0';
-    
+
     FILE *fp = fopen(AUTH_FILE, "a");
     fprintf(fp, "%s:%s\n", argv[1], crypt(argv[2], salt));
     fclose(fp);
 
-    server_send(ONLY, id, "\r\e[34m * Succesfully registered nickname.\e[0m\n");
+    server_send(ONLY, id, "\r\e[34m * Successfully registered nickname.\e[0m\n");
+    change_nick(id, argv[1]);
 }
 
 void cmd_login(int id, int argc, char *argv[])
@@ -126,15 +140,18 @@ void cmd_login(int id, int argc, char *argv[])
         server_send(ONLY, id, "\r\e[33m * Usage: /login nickname password\e[0m\n");
         return;
     }
-    
-    char buf[100];
-    if (!nick_exists(argv[1], buf)) {
+
+    if (strchr(argv[1], ':') != NULL) {
+        server_send(ONLY, id, "\r\e[33m * Nicknames mustn't contain ':'.\e[0m\n");
+        return;
+    }
+
+    char hash[64];
+    if (!nick_exists(argv[1], hash)) {
         server_send(ONLY, id, "\r\e[33m * Nickname isn't registered.\e[0m\n");
         return;
     }
-    
-    char *hash = strstr(buf, ":") + 1;
-     
+
     if (strcmp(crypt(argv[2], hash), hash)) {
         server_send(ONLY, id, "\r\e[33m * Provided password didn't match.\e[0m\n");
         return;

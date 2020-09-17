@@ -20,12 +20,10 @@ int connected = 0;
 
 void quit() {
     puts("\r(serv) Shutting down...");
-    for(int id = 0; id < maxclients; id++) {
+    server_send(EVERYONE, 0, "\r\e[34m * Server is shutting down...\e[0m\n");
+    for(int id = 0; id < maxclients; id++)
         close(clients[id]->connfd);
-        free(clients[id]);
-    }
     close(sockfd);
-    free(clients);
     exit(0);
 }
 
@@ -54,17 +52,17 @@ int main(int argc, char *argv[]) {
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(PORT);
-    
+
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("bind");
-        return 1;        
+        return 1;
     }
-    
+
     if (listen(sockfd, 10) < 0) {
         perror("listen");
         return 1;
     }
-    
+
     signal(SIGINT, quit);
 
     puts("(serv) Waiting for connections...");
@@ -73,7 +71,7 @@ int main(int argc, char *argv[]) {
         FD_SET(sockfd, &descriptors);
         int maxfd = sockfd;
         for (id = 0; id < maxclients; id++) {
-            /* If valid socket descriptor then add to read list. */  
+            /* If valid socket descriptor then add to read list. */
             if (clients[id]->connfd > 0) {
                 FD_SET(clients[id]->connfd, &descriptors);
                 /* Find highest file descriptor, needed for the select function. */
@@ -85,7 +83,7 @@ int main(int argc, char *argv[]) {
         select(maxfd + 1 ,&descriptors, NULL, NULL, NULL);
         /* Incoming connection on the primary socket. (new client) */
         if (FD_ISSET(sockfd, &descriptors)) {
-            if ((connfd = accept(sockfd, (struct sockaddr *)&cli_addr, (socklen_t*)&addrlen)) < 0) {   
+            if ((connfd = accept(sockfd, (struct sockaddr *)&cli_addr, (socklen_t*)&addrlen)) < 0) {
                 perror("accept");
                 exit(1);
             }
@@ -191,7 +189,7 @@ void command_handler(int id, char *str) {
 
     for (int i = 0; i < argc; i++)
         printf("(serv) argv[%d] = \"%s\"\n", i, argv[i]);
-    
+
     if (strcmp("/nick", argv[0]) == 0)
         cmd_nick(id, argc, argv);
     else if (strcmp("/dm", argv[0]) == 0)
