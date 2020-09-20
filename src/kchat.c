@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if (listen(sockfd, 10) < 0) {
+    if (listen(sockfd, BACKLOG) < 0) {
         perror("listen");
         return 1;
     }
