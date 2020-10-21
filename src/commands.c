@@ -37,7 +37,7 @@ void cmd_users(int id)
     server_send(ONLY, id, "\r\e[34m * Users (connected: %d): %s.\e[0m\n", connected, users);
 }
 
-int nick_exists(char *nick, char *hash)
+static int nick_exists(char *nick, char *hash)
 {
     int ret = 0;
     FILE *fp = fopen(AUTH_FILE, "r");
