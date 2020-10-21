@@ -106,8 +106,7 @@ void cmd_nick(int id, int argc, char *argv[])
     }
 
     char oldnick[17];
-    strncpy(oldnick, clients[id]->nick, 16);
-    oldnick[16]= '\0';
+    strcpy(oldnick, clients[id]->nick);
 
     if (change_nick(id, argv[1]))
         server_send(EVERYONE, 0, "\r\e[34m * %s is now known as %s.\e[0m\n", oldnick, clients[id]->nick);
