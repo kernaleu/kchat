@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
                     clients[id] = malloc(sizeof(client_t));
                     clients[id]->connfd = connfd;
                     clients[id]->color = rand() % 5 + 31;
-                    snprintf(clients[id]->nick, 16, "guest-%d", id);
+                    snprintf(clients[id]->nick, 16, "guest_%d", id);
                     connected++;
                     server_send(EXCEPT, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", clients[id]->nick, connected);
                     server_send(ONLY, id, "%s\n", motd);
