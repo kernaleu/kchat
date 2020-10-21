@@ -22,20 +22,22 @@ void cmd_dm(int id, int argc, char *argv[])
     server_send(ONLY, to_id, "\r\e[1;%dm%s\e[0m> %s\n", clients[id]->color, clients[id]->nick, argv[2]);
 }
 
+static int cmpstringp(const void *p1, const void *p2)
+{
+    return strcmp(* (char * const *) p1, * (char * const *) p2);
+}
+
 void cmd_users(int id)
 {
-    //  (16 + 2) * connected - 1
-    // ", username1, username2, username3"
-    char users[18 * connected];
-    users[0] = '\0';
-
+    char *users[connected];
+    int j = 0;
     for (int i = 0; i < maxclients; i++)
-        if (clients[i] != NULL) {
-            if (users[0] != '\0')
-                strcat(users, ", ");
-            strcat(users, clients[i]->nick);
-        }
-    server_send(ONLY, id, "\r\e[34m * Users (connected: %d): %s.\e[0m\n", connected, users);
+        if (clients[i] != NULL)
+            users[j++] = clients[i]->nick;
+    qsort(users, j, sizeof(char *), cmpstringp);
+    server_send(ONLY, id, "\r\e[34m * Connected: %d\e[0m\n", connected);
+    for (int i = 0; i < connected; i++)
+        server_send(ONLY, id, "\r\e[34m *     %s\e[0m\n", users[i]);
 }
 
 static int nick_exists(char *nick, char *hash)
