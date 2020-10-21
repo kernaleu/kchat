@@ -2,7 +2,6 @@
 #define KCHAT_H
 
 #include "../config.h"
-#define BUF_OUT_SIZE BUF_IN_SIZE+14
 
 extern int sockfd;
 extern int maxclients;

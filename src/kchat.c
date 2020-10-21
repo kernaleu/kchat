@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -11,7 +13,6 @@
 #include "../include/str2argv.h"
 
 static int bufinsize = BUF_IN_SIZE;
-static int bufoutsize = BUF_OUT_SIZE;
 static char *motd = MOTD;
 
 int sockfd;
@@ -143,20 +144,21 @@ int main(int argc, char *argv[])
  * 1. Send to everyone except id
  * 2. Send to everyone (ignores id)
  */
-void server_send(int mode, int id, const char *format, ...)
+void server_send(int mode, int id, const char *fmt, ...)
 {
-    char buf[bufoutsize];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buf, bufoutsize, format, args);
-    va_end(args);
+    char *str;
+    va_list ap;
+    va_start(ap, fmt);
+    int len = vasprintf(&str, fmt, ap);
+    va_end(ap);
 
     if (mode == ONLY)
-        write(clients[id]->connfd, buf, strlen(buf));
+        write(clients[id]->connfd, str, len);
     else
         for (int i = 0; i < maxclients; i++)
             if ((mode == EVERYONE || i != id) && clients[i] != NULL)
-                write(clients[i]->connfd, buf, strlen(buf));
+                write(clients[i]->connfd, str, len);
+    free(str);
 }
 
 int resolve_nick(char *nick)
