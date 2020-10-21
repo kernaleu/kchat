@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include <stdio.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -66,6 +67,24 @@ static int nick_exists(char *nick, char *hash)
     return ret;
 }
 
+static int username_valid(int id, char *nick)
+{
+    if (strlen(nick) > 16) {
+        server_send(ONLY, id, "\r\e[33m * This nickname is too long (more than 16 characters).\e[0m\n");
+        return 1;
+    }
+    for (int i = 0; i < strlen(nick); i++)
+        if (!(isalnum(nick[i]) || nick[i] == '_')) {
+            server_send(ONLY, id, "\r\e[33m * Only 0-9, A-Z, a-z and underscores are allowed for nicknames.\e[0m\n");
+            return 1;
+        }
+    if (strncmp(nick, "guest", 5) == 0) {
+        server_send(ONLY, id, "\r\e[33m * Forbidden nickname.\e[0m\n");
+        return 1;
+    }
+    return 0;
+}
+
 void cmd_nick(int id, int argc, char *argv[])
 {
     if (argc != 2) {
@@ -73,10 +92,8 @@ void cmd_nick(int id, int argc, char *argv[])
         return;
     }
 
-    if (strchr(argv[1], ':') != NULL) {
-        server_send(ONLY, id, "\r\e[33m * Nicknames mustn't contain ':'.\e[0m\n");
+    if (username_valid(id, argv[1]))
         return;
-    }
 
     if (nick_exists(argv[1], NULL)) {
         server_send(ONLY, id, "\r\e[33m * This nickname is registered. Provide a password with /login.\e[0m\n");
@@ -100,10 +117,8 @@ void cmd_register(int id, int argc, char *argv[])
         return;
     }
 
-    if (strchr(argv[1], ':') != NULL) {
-        server_send(ONLY, id, "\r\e[33m * Nicknames mustn't contain ':'.\e[0m\n");
+    if (username_valid(id, argv[1]))
         return;
-    }
 
     if (nick_exists(argv[1], NULL)) {
         server_send(ONLY, id, "\r\e[33m * This nickname has already been registered. Provide a password with /login.\e[0m\n");
@@ -141,10 +156,8 @@ void cmd_login(int id, int argc, char *argv[])
         return;
     }
 
-    if (strchr(argv[1], ':') != NULL) {
-        server_send(ONLY, id, "\r\e[33m * Nicknames mustn't contain ':'.\e[0m\n");
+    if (username_valid(id, argv[1]))
         return;
-    }
 
     char hash[64];
     if (!nick_exists(argv[1], hash)) {
