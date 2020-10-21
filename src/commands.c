@@ -34,10 +34,13 @@ void cmd_users(int id)
     for (int i = 0; i < maxclients; i++)
         if (clients[i] != NULL)
             users[j++] = clients[i]->nick;
+
     qsort(users, j, sizeof(char *), cmpstringp);
-    server_send(ONLY, id, "\r\e[34m * Connected: %d\e[0m\n", connected);
+
+    server_send(ONLY, id, "\r\e[34m * Connected: %d", connected);
     for (int i = 0; i < connected; i++)
-        server_send(ONLY, id, "\r\e[34m *     %s\e[0m\n", users[i]);
+        server_send(ONLY, id, "\n *     %s", users[i]);
+    server_send(ONLY, id, "\e[0m\n");
 }
 
 static int nick_exists(char *nick, char *hash)
