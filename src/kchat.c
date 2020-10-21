@@ -18,7 +18,8 @@ int sockfd;
 int maxclients = MAX_CLIENTS;
 int connected = 0;
 
-void quit() {
+void quit()
+{
     puts("\r(serv) Shutting down...");
     server_send(EVERYONE, 0, "\r\e[34m * Server is shutting down...\e[0m\n");
     for (int id = 0; id < maxclients; id++)
@@ -28,7 +29,8 @@ void quit() {
     exit(0);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     int conffd, connfd, id;
     fd_set descriptors;
     char buf[bufinsize + 1];
@@ -141,7 +143,8 @@ int main(int argc, char *argv[]) {
  * 1. Send to everyone except id
  * 2. Send to everyone (ignores id)
  */
-void server_send(int mode, int id, const char *format, ...) {
+void server_send(int mode, int id, const char *format, ...)
+{
     char buf[bufoutsize];
     va_list args;
     va_start(args, format);
@@ -156,7 +159,8 @@ void server_send(int mode, int id, const char *format, ...) {
                 write(clients[i]->connfd, buf, strlen(buf));
 }
 
-int resolve_nick(char *nick) {
+int resolve_nick(char *nick)
+{
     for (int id = 0; id < maxclients; id++)
         if (clients[id] != NULL && strncmp(clients[id]->nick, nick, 16) == 0)
             return id;
@@ -164,7 +168,8 @@ int resolve_nick(char *nick) {
     return -1;
 }
 
-void remove_nl(char *str) {
+void remove_nl(char *str)
+{
     for (int i = 0; str[i] != '\0'; i++)
         if (str[i] == '\n' || str[i] == '\r') {
             str[i] = '\0';
@@ -172,7 +177,8 @@ void remove_nl(char *str) {
         }
 }
 
-int change_nick(int id, char *str) {
+int change_nick(int id, char *str)
+{
     if (resolve_nick(str) != -1)
         return 0;
     strncpy(clients[id]->nick, str, 16);
@@ -180,7 +186,8 @@ int change_nick(int id, char *str) {
     return 1;
 }
 
-void command_handler(int id, char *str) {
+void command_handler(int id, char *str)
+{
     const char *errmsg;
     char **argv;
     int argc;
