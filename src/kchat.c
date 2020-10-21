@@ -164,7 +164,7 @@ void server_send(int mode, int id, const char *fmt, ...)
 int resolve_nick(char *nick)
 {
     for (int id = 0; id < maxclients; id++)
-        if (clients[id] != NULL && strncmp(clients[id]->nick, nick, 16) == 0)
+        if (clients[id] != NULL && strcmp(clients[id]->nick, nick) == 0)
             return id;
     /* Queried nick didn't match any. */
     return -1;
@@ -183,8 +183,7 @@ int change_nick(int id, char *str)
 {
     if (resolve_nick(str) != -1)
         return 0;
-    strncpy(clients[id]->nick, str, 16);
-    clients[id]->nick[16]= '\0';
+    strcpy(clients[id]->nick, str);
     return 1;
 }
 
