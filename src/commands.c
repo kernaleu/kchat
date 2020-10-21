@@ -50,7 +50,7 @@ int nick_exists(char *nick, char *hash)
             line[nread - 1] = '\0';
             char *token = strtok(line, delim);
             //printf("(serv) strtok nick = \"%s\"\n", token);
-            if (!strcmp(nick, token)) {
+            if (strcmp(nick, token) == 0) {
                 if (hash != NULL) {
                     token = strtok(NULL, delim);
                     //printf("(serv) strtok hash = \"%s\"\n", token);
@@ -152,7 +152,7 @@ void cmd_login(int id, int argc, char *argv[])
         return;
     }
 
-    if (strcmp(crypt(argv[2], hash), hash)) {
+    if (strcmp(crypt(argv[2], hash), hash) != 0) {
         server_send(ONLY, id, "\r\e[33m * Provided password didn't match.\e[0m\n");
         return;
     }
