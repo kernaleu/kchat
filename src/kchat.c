@@ -23,9 +23,12 @@ void quit()
 {
     puts("\r(serv) Shutting down...");
     server_send(EVERYONE, -1, -1, "\r\e[34m * Server is shutting down...\e[0m\n");
-    for (int id = 0; id < maxclients; id++)
-        if (clients[id] != NULL)
+    for (int id = 0; id < maxclients; id++) {
+        if (clients[id] != NULL) {
             close(clients[id]->connfd);
+            free(clients[id]);
+        }
+    }
     close(sockfd);
     exit(0);
 }
@@ -36,7 +39,6 @@ int main(int argc, char *argv[])
     fd_set descriptors;
     char buf[bufinsize + 1];
 
-    clients = malloc(sizeof(client_t *) * maxclients);
     for (id = 0; id < maxclients; id++)
         clients[id] = NULL;
 
@@ -97,9 +99,7 @@ int main(int argc, char *argv[])
                     clients[id]->connfd = connfd;
                     clients[id]->color = rand() % 5 + 31;
                     /* Set default rules for the clients. */
-                    //memset(clients[id]->ruleset, 3, maxclients);
-                    for (int i = 0; i < maxclients; i++)
-                        clients[id]->ruleset[i] = 3;
+                    memset(clients[id]->ruleset, 3, sizeof(int) * maxclients);
                     snprintf(clients[id]->nick, 16, "guest_%d", id);
                     connected++;
                     server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", clients[id]->nick, connected);
@@ -150,7 +150,7 @@ static int check_rules(int from_id, int to_id)
 {
     /*
      * If sender is server or
-     * sender want's to send and also receiver want's to receive.
+     * sender wants to send and also receiver wants to receive.
      */
     if (from_id < 0 || (clients[from_id]->ruleset[to_id] % 2 && clients[to_id]->ruleset[from_id] > 1))
         return 1;

@@ -3,7 +3,6 @@
 
 #include "../config.h"
 
-extern int sockfd;
 extern int maxclients;
 extern int connected;
 
@@ -21,7 +20,7 @@ typedef struct {
     int ruleset[MAX_CLIENTS];
 } client_t;
 
-client_t **clients;
+client_t *clients[MAX_CLIENTS];
 
 #define ONLY 0
 #define EXCEPT 1
