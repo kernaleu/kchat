@@ -22,7 +22,7 @@ int connected = 0;
 void quit()
 {
     puts("\r(serv) Shutting down...");
-    server_send(EVERYONE, 0, "\r\e[34m * Server is shutting down...\e[0m\n");
+    server_send(EVERYONE, -1, -1, "\r\e[34m * Server is shutting down...\e[0m\n");
     for (int id = 0; id < maxclients; id++)
         if (clients[id] != NULL)
             close(clients[id]->connfd);
@@ -96,10 +96,14 @@ int main(int argc, char *argv[])
                     clients[id] = malloc(sizeof(client_t));
                     clients[id]->connfd = connfd;
                     clients[id]->color = rand() % 5 + 31;
+                    /* Set default rules for the clients. */
+                    //memset(clients[id]->ruleset, 3, maxclients);
+                    for (int i = 0; i < maxclients; i++)
+                        clients[id]->ruleset[i] = 3;
                     snprintf(clients[id]->nick, 16, "guest_%d", id);
                     connected++;
-                    server_send(EXCEPT, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", clients[id]->nick, connected);
-                    server_send(ONLY, id, "%s\n", motd);
+                    server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", clients[id]->nick, connected);
+                    server_send(ONLY, -1, id, "%s\n", motd);
                     break;
                 }
             }
@@ -121,15 +125,19 @@ int main(int argc, char *argv[])
                             command_handler(id, buf);
                         /* Send message. */
                         else
-                            server_send(EXCEPT, id, "\r\e[1;%dm%s\e[0m: %s\n", clients[id]->color, clients[id]->nick, buf);
+                            server_send(EXCEPT, id, id, "\r\e[1;%dm%s\e[0m: %s\n", clients[id]->color, clients[id]->nick, buf);
                     }
                     /* Client disconnected. */
                     else {
                         close(clients[id]->connfd);
                         connected--;
-                        server_send(EXCEPT, id, "\r\e[34m * %s left. (connected: %d)\e[0m\n", clients[id]->nick, connected);
+                        server_send(EXCEPT, -1, id, "\r\e[34m * %s left. (connected: %d)\e[0m\n", clients[id]->nick, connected);
                         free(clients[id]);
                         clients[id] = NULL;
+                        /* Set default rule on all clients for the disconnecting user. */
+                        for (int i = 0; i < maxclients; i++)
+                            if (clients[i] != NULL)
+                                clients[i]->ruleset[id] = 3;
                     }
                 }
             }
@@ -138,13 +146,24 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+static int check_rules(int from_id, int to_id)
+{
+    /*
+     * If sender is server or
+     * sender want's to send and also receiver want's to receive.
+     */
+    if (from_id < 0 || (clients[from_id]->ruleset[to_id] % 2 && clients[to_id]->ruleset[from_id] > 1))
+        return 1;
+    return 0;
+}
+
 /*
  * Sending mode:
- * 0. Send only to id
- * 1. Send to everyone except id
- * 2. Send to everyone (ignores id)
+ *   0. Send only to id
+ *   1. Send to everyone except id
+ *   2. Send to everyone (ignores id)
  */
-void server_send(int mode, int id, const char *fmt, ...)
+void server_send(int mode, int from_id, int to_id, const char *fmt, ...)
 {
     char *str;
     va_list ap;
@@ -152,11 +171,11 @@ void server_send(int mode, int id, const char *fmt, ...)
     int len = vasprintf(&str, fmt, ap);
     va_end(ap);
 
-    if (mode == ONLY)
-        write(clients[id]->connfd, str, len);
+    if (mode == ONLY && check_rules(from_id, to_id))
+        write(clients[to_id]->connfd, str, len);
     else
         for (int i = 0; i < maxclients; i++)
-            if ((mode == EVERYONE || i != id) && clients[i] != NULL)
+            if ((mode == EVERYONE || i != to_id) && clients[i] != NULL && check_rules(from_id, i))
                 write(clients[i]->connfd, str, len);
     free(str);
 }
@@ -194,12 +213,12 @@ void command_handler(int id, char *str)
     int argc;
 
     if (str2argv(str, &argc, &argv, &errmsg) != 0) {
-        server_send(ONLY, id, "\r\e[31m * %s!\e[0m\n", errmsg);
+        server_send(ONLY, -1, id, "\r\e[31m * %s!\e[0m\n", errmsg);
         return;
     }
 
-    for (int i = 0; i < argc; i++)
-        printf("(serv) argv[%d] = \"%s\"\n", i, argv[i]);
+    //for (int i = 0; i < argc; i++)
+    //    printf("(serv) argv[%d] = \"%s\"\n", i, argv[i]);
 
     if (strcmp("/nick", argv[0]) == 0)
         cmd_nick(id, argc, argv);
@@ -213,8 +232,10 @@ void command_handler(int id, char *str)
         cmd_register(id, argc, argv);
     else if (strcmp("/login", argv[0]) == 0)
         cmd_login(id, argc, argv);
+    else if (strcmp("/rules", argv[0]) == 0)
+        cmd_rules(id, argc, argv);
     else
-        server_send(ONLY, id, "\r\e[31m * Unknown command!\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[31m * Unknown command!\e[0m\n");
 
     argv_free(&argc, &argv);
 }

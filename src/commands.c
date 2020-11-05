@@ -11,15 +11,15 @@
 void cmd_dm(int id, int argc, char *argv[])
 {
     if (argc != 3) {
-        server_send(ONLY, id, "\r\e[33m * Usage: /dm nick \"msg\"\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[33m * Usage: /dm nick \"msg\"\e[0m\n");
         return;
     }
     int to_id;
     if ((to_id = resolve_nick(argv[1])) == -1) {
-        server_send(ONLY, id, "\r\e[31m * User with this nick does not exist!\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[31m * User with this nick does not exist!\e[0m\n");
         return;
     }
-    server_send(ONLY, to_id, "\r\e[1;%dm%s\e[0m> %s\n", clients[id]->color, clients[id]->nick, argv[2]);
+    server_send(ONLY, id, to_id, "\r\e[1;%dm%s\e[0m> %s\n", clients[id]->color, clients[id]->nick, argv[2]);
 }
 
 static int cmpstringp(const void *p1, const void *p2)
@@ -37,10 +37,10 @@ void cmd_users(int id)
 
     qsort(users, j, sizeof(char *), cmpstringp);
 
-    server_send(ONLY, id, "\r\e[34m * Connected: %d", connected);
+    server_send(ONLY, -1, id, "\r\e[34m * Connected: %d", connected);
     for (int i = 0; i < connected; i++)
-        server_send(ONLY, id, "\n *     %s", users[i]);
-    server_send(ONLY, id, "\e[0m\n");
+        server_send(ONLY, -1, id, "\n *     %s", users[i]);
+    server_send(ONLY, -1, id, "\e[0m\n");
 }
 
 static int nick_exists(char *nick, char *hash)
@@ -75,16 +75,16 @@ static int nick_exists(char *nick, char *hash)
 static int username_valid(int id, char *nick)
 {
     if (strlen(nick) > 16) {
-        server_send(ONLY, id, "\r\e[33m * This nickname is too long (more than 16 characters).\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[33m * This nickname is too long (more than 16 characters).\e[0m\n");
         return 1;
     }
     for (int i = 0; i < strlen(nick); i++)
         if (!(isalnum(nick[i]) || nick[i] == '_')) {
-            server_send(ONLY, id, "\r\e[33m * Only 0-9, A-Z, a-z and underscores are allowed for nicknames.\e[0m\n");
+            server_send(ONLY, -1, id, "\r\e[33m * Only 0-9, A-Z, a-z and underscores are allowed for nicknames.\e[0m\n");
             return 1;
         }
     if (strncmp(nick, "guest", 5) == 0) {
-        server_send(ONLY, id, "\r\e[33m * Forbidden nickname.\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[33m * Forbidden nickname.\e[0m\n");
         return 1;
     }
     return 0;
@@ -93,7 +93,7 @@ static int username_valid(int id, char *nick)
 void cmd_nick(int id, int argc, char *argv[])
 {
     if (argc != 2) {
-        server_send(ONLY, id, "\r\e[33m * Usage: /nick nickname\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[33m * Usage: /nick nickname\e[0m\n");
         return;
     }
 
@@ -101,7 +101,7 @@ void cmd_nick(int id, int argc, char *argv[])
         return;
 
     if (nick_exists(argv[1], NULL)) {
-        server_send(ONLY, id, "\r\e[33m * This nickname is registered. Provide a password with /login.\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[33m * This nickname is registered. Provide a password with /login.\e[0m\n");
         return;
     }
 
@@ -109,15 +109,15 @@ void cmd_nick(int id, int argc, char *argv[])
     strcpy(oldnick, clients[id]->nick);
 
     if (change_nick(id, argv[1]))
-        server_send(EVERYONE, 0, "\r\e[34m * %s is now known as %s.\e[0m\n", oldnick, clients[id]->nick);
+        server_send(EVERYONE, -1, -1, "\r\e[34m * %s is now known as %s.\e[0m\n", oldnick, clients[id]->nick);
     else
-        server_send(ONLY, id, "\r\e[31m * User with this nick is already logged in.\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[31m * User with this nick is already logged in.\e[0m\n");
 }
 
 void cmd_register(int id, int argc, char *argv[])
 {
     if (argc != 3) {
-        server_send(ONLY, id, "\r\e[33m * Usage: /register nickname password\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[33m * Usage: /register nickname password\e[0m\n");
         return;
     }
 
@@ -125,7 +125,7 @@ void cmd_register(int id, int argc, char *argv[])
         return;
 
     if (nick_exists(argv[1], NULL)) {
-        server_send(ONLY, id, "\r\e[33m * This nickname has already been registered. Provide a password with /login.\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[33m * This nickname has already been registered. Provide a password with /login.\e[0m\n");
         return;
     }
 
@@ -149,14 +149,14 @@ void cmd_register(int id, int argc, char *argv[])
     fprintf(fp, "%s:%s\n", argv[1], crypt(argv[2], salt));
     fclose(fp);
 
-    server_send(ONLY, id, "\r\e[34m * Successfully registered nickname.\e[0m\n");
+    server_send(ONLY, -1, id, "\r\e[34m * Successfully registered nickname.\e[0m\n");
     change_nick(id, argv[1]);
 }
 
 void cmd_login(int id, int argc, char *argv[])
 {
     if (argc != 3) {
-        server_send(ONLY, id, "\r\e[33m * Usage: /login nickname password\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[33m * Usage: /login nickname password\e[0m\n");
         return;
     }
 
@@ -165,12 +165,12 @@ void cmd_login(int id, int argc, char *argv[])
 
     char hash[64];
     if (!nick_exists(argv[1], hash)) {
-        server_send(ONLY, id, "\r\e[33m * Nickname isn't registered.\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[33m * Nickname isn't registered.\e[0m\n");
         return;
     }
 
     if (strcmp(crypt(argv[2], hash), hash) != 0) {
-        server_send(ONLY, id, "\r\e[33m * Provided password didn't match.\e[0m\n");
+        server_send(ONLY, -1, id, "\r\e[33m * Provided password didn't match.\e[0m\n");
         return;
     }
 
@@ -178,5 +178,41 @@ void cmd_login(int id, int argc, char *argv[])
     strcpy(oldnick, clients[id]->nick);
 
     if (change_nick(id, argv[1]))
-        server_send(EVERYONE, 0, "\r\e[34m * %s is now known as %s.\e[0m\n", oldnick, clients[id]->nick);
+        server_send(EVERYONE, -1, -1, "\r\e[34m * %s is now known as %s.\e[0m\n", oldnick, clients[id]->nick);
+}
+
+void cmd_rules(int id, int argc, char *argv[])
+{
+    if (argc != 3) {
+        server_send(ONLY, -1, id,
+            "\r\e[33m * Usage: /rules nickname mode\n"
+            " * Modes:\n"
+            " *     0. None\n"
+            " *     1. Outgoing\n"
+            " *     2. Incoming\n"
+            " *     3. Default (outgoing + incoming)"
+            "\e[0m\n"
+        );
+        return;
+    }
+
+    int handle_id = resolve_nick(argv[1]);
+    if (handle_id == -1) {
+        server_send(ONLY, -1, id, "\r\e[31m * User with this nick does not exist!\e[0m\n");
+        return;
+    }
+
+    if (handle_id == id) {
+        server_send(ONLY, -1, id, "\r\e[31m * Can not change rules for yourself!\e[0m\n");
+        return;
+    }
+
+    int mode = atoi(argv[2]);
+    if (mode < 0 || mode > 3) {
+        server_send(ONLY, -1, id, "\r\e[31m * Invalid mode!\e[0m\n");
+        return;
+    }
+
+    clients[id]->ruleset[handle_id] = mode;
+    server_send(ONLY, -1, id, "\r\e[34m * Rules for %s were changed to %d.\e[0m\n", argv[1], mode);
 }
