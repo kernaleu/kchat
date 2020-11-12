@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -12,7 +13,7 @@
 #include "../include/commands.h"
 #include "../include/str2argv.h"
 
-static int bufinsize = BUF_IN_SIZE;
+static int bufsize = BUF_SIZE;
 static char *motd = MOTD;
 
 int sockfd;
@@ -35,9 +36,9 @@ void quit()
 
 int main(int argc, char *argv[])
 {
-    int conffd, connfd, id;
+    int connfd, id;
     fd_set descriptors;
-    char buf[bufinsize + 1];
+    char buf[bufsize + 1]; /* 1 more to leave space for '\0'. */
 
     for (id = 0; id < maxclients; id++)
         clients[id] = NULL;
@@ -113,9 +114,9 @@ int main(int argc, char *argv[])
             if (clients[id] != NULL) {
                 if (FD_ISSET(clients[id]->connfd, &descriptors)) {
                     ssize_t bytesread;
-                    if ((bytesread = read(clients[id]->connfd, buf, bufinsize)) > 0) {
+                    if ((bytesread = read(clients[id]->connfd, buf, bufsize)) > 0) {
                         buf[bytesread] = '\0';
-                        remove_nl(buf);
+                        trim(buf);
 
                         /* Skip empty messages. */
                         if (strlen(buf) == 0)
@@ -189,13 +190,27 @@ int resolve_nick(char *nick)
     return -1;
 }
 
-void remove_nl(char *str)
+/* Remove leading and trailing white space characters. */
+void trim(char *str)
 {
-    for (int i = 0; str[i] != '\0'; i++)
-        if (str[i] == '\n' || str[i] == '\r') {
-            str[i] = '\0';
-            break;
-        }
+    int i, j;
+
+    /* Trim leading white spaces. */
+    for (i = 0; isspace(str[i]); i++);
+
+    /* Shift all trailing characters to its left. */
+    for (j = 0; str[i + j] != '\0'; j++)
+        str[j] = str[i + j];
+    str[j] = '\0'; /* Terminate string with NULL. */
+
+    /* Trim trailing white spaces. */
+    i = -1;
+    for (j = 0; str[j] != '\0'; j++)
+        if (!isspace(str[j]))
+            i = j;
+
+    /* Set trailing character to NULL. */
+    str[i + 1] = '\0';
 }
 
 int change_nick(int id, char *str)

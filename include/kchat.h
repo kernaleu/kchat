@@ -27,7 +27,7 @@ client_t *clients[MAX_CLIENTS];
 #define EVERYONE 2
 void server_send(int mode, int from_id, int to_id, const char *format, ...);
 int resolve_nick(char *nick);
-void remove_nl(char *str);
+void trim(char *str);
 int change_nick(int id, char *str);
 void command_handler(int id, char *str);
 
