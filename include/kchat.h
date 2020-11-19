@@ -20,7 +20,7 @@ typedef struct {
     int ruleset[MAX_CLIENTS];
 } client_t;
 
-client_t *clients[MAX_CLIENTS];
+extern client_t *clients[];
 
 #define ONLY 0
 #define EXCEPT 1

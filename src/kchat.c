@@ -16,6 +16,7 @@
 static int bufsize = BUF_SIZE;
 static char *motd = MOTD;
 
+client_t *clients[MAX_CLIENTS];
 int sockfd;
 int maxclients = MAX_CLIENTS;
 int connected = 0;
@@ -194,6 +195,13 @@ int resolve_nick(char *nick)
 void trim(char *str)
 {
     int i, j;
+
+    /* End string on EOL. */
+    for (i = 0; str[i] != '\0'; i++)
+        if (str[i] == '\n' || str[i] == '\r') {
+            str[i] = '\0';
+            break;
+        }
 
     /* Trim leading white spaces. */
     for (i = 0; isspace(str[i]); i++);
