@@ -7,17 +7,17 @@ extern int maxclients;
 extern int connected;
 
 typedef struct {
-    int connfd;
-    int color;
-    char nick[17];
-     /*
-      * Modes:
-      *   None = 0
-      *   Outgoing = 1
-      *   Incoming = 2
-      *   Default (outgoing + incoming) = 3
-      */
-    int ruleset[MAX_CLIENTS];
+	int connfd;
+	int color;
+	char nick[17];
+	/*
+	 * Modes:
+	 *   None = 0
+	 *   Outgoing = 1
+	 *   Incoming = 2
+	 *   Default (outgoing + incoming) = 3
+	 */
+	int ruleset[MAX_CLIENTS];
 } client_t;
 
 extern client_t *clients[];
