@@ -17,9 +17,11 @@
 #ifndef STR2ARGV_H
 #define STR2ARGV_H
 
-/* hard limits on the size of an argv and each entry/token w/in an argv */
-#define ARGV_MAX_ENTRIES    255
-#define ARGV_MAX_TOKEN_LEN  255
+#include "../config.h"
+
+/* Hard limits on the size of an argv and each entry/token w/in an argv. */
+#define ARGV_MAX_ENTRIES    BUF_SIZE
+#define ARGV_MAX_TOKEN_LEN  BUF_SIZE
 
 /*
  * Given a string (str), it parses it taking into account escape sequence (\),
