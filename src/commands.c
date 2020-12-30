@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "../include/kchat.h"
 #include "../include/commands.h"
 
@@ -45,7 +48,7 @@ void cmd_users(int id)
 
 static int nick_exists(char *nick, char *hash)
 {
-	int ret = 0;
+	int ret = -1, lineno = 0;
 	FILE *fp = fopen(AUTH_FILE, "r");
 
 	if (fp != NULL) {
@@ -56,13 +59,14 @@ static int nick_exists(char *nick, char *hash)
 			line[nread - 1] = '\0';
 			char *token = strtok(line, delim);
 			if (strcmp(nick, token) == 0) {
+				ret = lineno;
 				if (hash != NULL) {
 					token = strtok(NULL, delim);
 					strcpy(hash, token);
 				}
-				ret = 1;
 				break;
 			}
+			lineno++;
 		}
 		free(line);
 		fclose(fp);
@@ -101,7 +105,7 @@ void cmd_nick(int id, int argc, char *argv[])
 	if (username_valid(id, argv[1]))
 		return;
 
-	if (nick_exists(argv[1], NULL)) {
+	if (nick_exists(argv[1], NULL) > 0) {
 		server_send(ONLY, -1, id, "\r\e[33m * This nickname is registered. Provide a password with /login.\e[0m\n");
 		return;
 	}
@@ -125,7 +129,7 @@ void cmd_register(int id, int argc, char *argv[])
 	if (username_valid(id, argv[1]))
 		return;
 
-	if (nick_exists(argv[1], NULL)) {
+	if (nick_exists(argv[1], NULL) > 0) {
 		server_send(ONLY, -1, id, "\r\e[33m * This nickname has already been registered. Provide a password with /login.\e[0m\n");
 		return;
 	}
@@ -154,6 +158,55 @@ void cmd_register(int id, int argc, char *argv[])
 	change_nick(id, argv[1]);
 }
 
+void cmd_unregister(int id, int argc, char *argv[])
+{
+	int lineno = nick_exists(clients[id]->nick, NULL);
+
+	if (lineno < 0) {
+		server_send(ONLY, -1, id, "\r\e[34m * Your current nickname isn't registered.\e[0m\n");
+		return;
+	}
+
+	int fd;
+	struct stat sb;
+	char *addr;
+	size_t length;
+	ssize_t s;
+
+	fd = open(AUTH_FILE, O_RDWR);
+	if (fd == -1) {
+		perror("open");
+		return;
+	}
+
+	if (fstat(fd, &sb) == -1) {
+		perror("fstat");
+		return;
+	}
+
+	addr = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (addr == MAP_FAILED) {
+		perror("mmap");
+		return;
+	}
+
+	int cur = 0;
+	for (int i = 0; i <= sb.st_size; i++) {
+		if (cur != (lineno))
+			write(fd, &(addr[i]), 1);
+
+		if (addr[i] == '\n')
+			cur++;
+	}
+
+	ftruncate(fd, sb.st_size - (strlen(clients[id]->nick) + 65));
+
+	server_send(ONLY, -1, id, "\r\e[34m * Successfully unregistered nickname.\e[0m\n");
+
+	munmap(addr, sb.st_size);
+	close(fd);
+}
+
 void cmd_login(int id, int argc, char *argv[])
 {
 	if (argc != 3) {
@@ -165,7 +218,7 @@ void cmd_login(int id, int argc, char *argv[])
 		return;
 
 	char hash[64];
-	if (!nick_exists(argv[1], hash)) {
+	if (nick_exists(argv[1], hash) < 0) {
 		server_send(ONLY, -1, id, "\r\e[33m * Nickname isn't registered.\e[0m\n");
 		return;
 	}

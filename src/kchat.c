@@ -250,6 +250,8 @@ void command_handler(int id, char *str)
 		quit();
 	else if (strcmp("/register", argv[0]) == 0)
 		cmd_register(id, argc, argv);
+	else if (strcmp("/unregister", argv[0]) == 0)
+		cmd_unregister(id, argc, argv);
 	else if (strcmp("/login", argv[0]) == 0)
 		cmd_login(id, argc, argv);
 	else if (strcmp("/rules", argv[0]) == 0)
