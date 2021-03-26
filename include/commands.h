@@ -8,5 +8,6 @@ void cmd_register(int id, int argc, char *argv[]);
 void cmd_login(int id, int argc, char *argv[]);
 void cmd_unregister(int id, int argc, char *argv[]);
 void cmd_rules(int id, int argc, char *argv[]);
+void cmd_help(int id);
 
 #endif

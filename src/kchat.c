@@ -256,6 +256,8 @@ void command_handler(int id, char *str)
 		cmd_login(id, argc, argv);
 	else if (strcmp("/rules", argv[0]) == 0)
 		cmd_rules(id, argc, argv);
+	else if (strcmp("/help", argv[0]) == 0)
+		cmd_help(id);
 	else
 		server_send(ONLY, -1, id, "\r\e[31m * Unknown command!\e[0m\n");
 	argv_free(&argc, &argv);

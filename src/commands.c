@@ -270,3 +270,20 @@ void cmd_rules(int id, int argc, char *argv[])
 	clients[id]->ruleset[handle_id] = mode;
 	server_send(ONLY, -1, id, "\r\e[34m * Rules for %s were changed to %d.\e[0m\n", argv[1], mode);
 }
+
+void cmd_help(int id)
+{
+	server_send(ONLY, -1, id,
+		"\r\e[34m * Commands available:\n"
+		" * /dm\n"
+		" * /login\n"
+		" * /nick\n"
+		" * /restart\n"
+		" * /register\n"
+		" * /rules\n"
+		" * /unregister\n"
+		" * /users\n"
+		"\e[0m\n"
+	);
+	return;
+}
