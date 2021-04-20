@@ -6,6 +6,7 @@
 #define BUF_SIZE 512
 #define MAX_CLIENTS 17
 #define AUTH_FILE "auth.txt"
+#define AUTH_FILE_TMP "."AUTH_FILE".tmp"
 
 #define MOTD  "\r\e[1;34m" \
 "                  __\n" \

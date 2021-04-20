@@ -1,16 +1,17 @@
 #define _GNU_SOURCE
 
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <signal.h>
-#include <unistd.h>
 #include <arpa/inet.h>
-#include "../include/kchat.h"
+#include <ctype.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
 #include "../include/commands.h"
+#include "../include/kchat.h"
 #include "../include/str2argv.h"
 
 static int bufsize = BUF_SIZE;
@@ -35,7 +36,7 @@ void quit()
 	exit(0);
 }
 
-int main(int argc, char *argv[])
+int main()
 {
 	int connfd, id;
 	fd_set descriptors;
@@ -124,7 +125,7 @@ int main(int argc, char *argv[])
 							continue;
 						/* Handle commands. */
 						if (buf[0] == '/')
-							command_handler(id, buf);
+							command_handle(id, buf);
 						/* Send message. */
 						else
 							server_send(EXCEPT, id, id, "\r\e[1;%dm%s\e[0m: %s\n", clients[id]->color, clients[id]->nick, buf);
@@ -191,6 +192,108 @@ int resolve_nick(char *nick)
 	return -1;
 }
 
+static char *hash_pass(const char *pass)
+{
+	char salt[20] = "$5$";
+	const char *const saltchars = "./0123456789ABCDEFGHIJKLMNOPQRST"
+		"UVWXYZabcdefghijklmnopqrstuvwxyz";
+
+	/* Retrieve 16 random bytes from the operating system. */
+	unsigned char ubytes[16];
+	if (getentropy (ubytes, sizeof ubytes)) {
+		perror ("getentropy");
+		return NULL;
+	}
+
+	for (int i = 0; i < 16; i++)
+		salt[3 + i] = saltchars[ubytes[i] & 0x3f];
+	salt[19] = '\0';
+
+	return crypt(pass, salt);
+}
+
+int change_nick(int mode, int id, char *nick)
+{
+	if (mode && strcmp(clients[id]->nick, nick) == 0) /* In case user tries to register currently set nickname. */
+			return 1;
+
+	else if (resolve_nick(nick) != -1) {
+			server_send(ONLY, -1, id, "\r\e[33m * Already logged in!\e[0m\n");
+			return 0;
+	}
+	server_send(EVERYONE, -1, -1, "\r\e[34m * %s is now known as %s.\e[0m\n", clients[id]->nick, nick);
+	strcpy(clients[id]->nick, nick);
+	return 1;
+}
+
+/*
+ * Handling mode:
+ *   0 (EXISTS). Check if nick is registered (pass set to NULL).
+ *   1 (LOGIN). Authenticate if provided pass matches the registered hash.
+ *   2 (REGISTER). Register if nick is available.
+ *   3 (REMOVE). Remove (pass set to NULL).
+ */
+int nick_handle(int mode, char *nick, char *pass)
+{
+	int ret = 0, found = 0;
+	FILE *fp[2];
+	fp[0] = fopen(AUTH_FILE, "a+");
+	if (fp != NULL) {
+		char *line = NULL;
+		char delim[] = ":";
+		size_t len;
+		ssize_t chars;
+		unsigned lineno[2];
+		for (lineno[0] = 0; (chars = getline(&line, &len, fp[0])) != -1; lineno[0]++) {
+			if (line[chars - 1] == '\n')
+				line[chars - 1] = '\0';
+			char *token = strtok(line, delim);
+			if (strcmp(nick, token) == 0) { /* Found a line with our nick. */
+				found = 1;
+				switch (mode) {
+				case EXISTS:
+					ret = 1;
+					break;
+				case LOGIN:
+					token = strtok(NULL, delim);
+					if (strcmp(crypt(pass, token), token) == 0) /* Password hashes match. */
+						ret = 1;
+					break;
+				case REMOVE:
+					fp[1] = fopen(AUTH_FILE_TMP, "w");
+					rewind(fp[0]);
+					/*
+					 * Read line by line old file and write to a new temporary file,
+					 * except the line we want to remove.
+					 */
+					for (lineno[1] = 0; (chars = getline(&line, &len, fp[0])) != -1; lineno[1]++) {
+						if (lineno[0] == lineno[1])
+							break;
+						fwrite(line, 1, chars, fp[1]);
+					}
+					/*
+					 * Write the remaining part of the file, but here we don't
+					 * need to count lines anymore nor check them.
+					 */
+					while ((chars = getline(&line, &len, fp[0])) != -1)
+						fwrite(line, 1, chars, fp[1]);
+					fclose(fp[1]);
+					rename(AUTH_FILE_TMP, AUTH_FILE); /* Replace the original file with temporary one. */
+					ret = 1;
+				}
+				break;
+			}
+		}
+		free(line);
+		if (mode == REGISTER && !found) {
+			fprintf(fp[0], "%s:%s\n", nick, hash_pass(pass));
+			ret = 1;
+		}
+		fclose(fp[0]);
+	}
+	return ret;
+}
+
 /* Remove leading and trailing white space characters. */
 void trim(char *str)
 {
@@ -221,15 +324,7 @@ void trim(char *str)
 	str[i + 1] = '\0';
 }
 
-int change_nick(int id, char *str)
-{
-	if (resolve_nick(str) != -1)
-		return 0;
-	strcpy(clients[id]->nick, str);
-	return 1;
-}
-
-void command_handler(int id, char *str)
+void command_handle(int id, char *str)
 {
 	const char *errmsg;
 	char **argv;
@@ -251,7 +346,7 @@ void command_handler(int id, char *str)
 	else if (strcmp("/register", argv[0]) == 0)
 		cmd_register(id, argc, argv);
 	else if (strcmp("/unregister", argv[0]) == 0)
-		cmd_unregister(id, argc, argv);
+		cmd_unregister(id);
 	else if (strcmp("/login", argv[0]) == 0)
 		cmd_login(id, argc, argv);
 	else if (strcmp("/rules", argv[0]) == 0)
