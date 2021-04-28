@@ -4,7 +4,7 @@
 #define PORT 1337
 #define BACKLOG 10 /* Pending connections in queue. */
 #define BUF_SIZE 512
-#define MAX_CLIENTS 17
+#define MAX_CLIENTS 1024
 #define AUTH_FILE "auth.txt"
 #define AUTH_FILE_TMP "."AUTH_FILE".tmp"
 

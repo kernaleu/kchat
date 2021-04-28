@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <errno.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -34,6 +35,23 @@ void quit()
 	}
 	close(sockfd);
 	exit(0);
+}
+
+
+static void client_disconnect(int id)
+{
+	close(clients[id]->connfd);
+	connected--;
+
+	server_send(EXCEPT, -1, id, "\r\e[34m * %s left. (connected: %d)\e[0m\n",
+	    clients[id]->nick, connected);
+	free(clients[id]);
+	clients[id] = NULL;
+
+	/* Set default rule on all clients for the disconnecting user. */
+	for (int i = 0; i < maxclients; i++)
+		if (clients[i] != NULL)
+			clients[i]->ruleset[id] = 3;
 }
 
 int main()
@@ -70,10 +88,11 @@ int main()
 		return 1;
 	}
 
+	signal(SIGPIPE, SIG_IGN); /* Ignore SIGPIPE as we handle it manually. */
 	signal(SIGINT, quit);
 
 	puts("(serv) Waiting for connections...");
-	while (1) {
+	for (;;) {
 		FD_ZERO(&descriptors);
 		FD_SET(sockfd, &descriptors);
 		int maxfd = sockfd;
@@ -87,16 +106,18 @@ int main()
 			}
 		}
 
-		select(maxfd + 1 ,&descriptors, NULL, NULL, NULL);
+		if (select(maxfd + 1 ,&descriptors, NULL, NULL, NULL) == -1)
+			perror("select");
 		/* Incoming connection on the primary socket. (new client) */
 		if (FD_ISSET(sockfd, &descriptors)) {
-			if ((connfd = accept(sockfd, (struct sockaddr *)&cli_addr, (socklen_t*)&addrlen)) < 0) {
+			if ((connfd = accept(sockfd, (struct sockaddr *)&cli_addr, (socklen_t*)&addrlen)) == -1) {
 				perror("accept");
 				exit(1);
 			}
-			printf("(serv) New connection, sockfd: %d, ipaddr: %s, port: %d\n", connfd, inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
+			printf("(serv) New connection, sockfd: %d, ipaddr: %s, port: %d\n", connfd,
+			    inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
 			for (id = 0; id < maxclients; id++) {
-				/* If position is empty */
+				/* If position is empty. */
 				if (clients[id] == NULL) {
 					clients[id] = malloc(sizeof(client_t));
 					clients[id]->connfd = connfd;
@@ -105,43 +126,40 @@ int main()
 					memset(clients[id]->ruleset, 3, sizeof(int) * maxclients);
 					snprintf(clients[id]->nick, 16, "guest_%d", id);
 					connected++;
-					server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n", clients[id]->nick, connected);
+					server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n",
+					    clients[id]->nick, connected);
 					server_send(ONLY, -1, id, "%s\n", motd);
 					break;
 				}
 			}
+			if (id == maxclients) {/* Server is full. */
+				puts("(serv) Server is full. Disconnecting.");
+				close(connfd);
+			}
 		}
 		/* IO operations on other sockets. */
 		for (id = 0; id < maxclients; id++) {
-			if (clients[id] != NULL) {
-				if (FD_ISSET(clients[id]->connfd, &descriptors)) {
-					ssize_t bytesread;
-					if ((bytesread = read(clients[id]->connfd, buf, bufsize)) > 0) {
-						buf[bytesread] = '\0';
-						trim(buf);
+			if (clients[id] != NULL && FD_ISSET(clients[id]->connfd, &descriptors)) {
+				ssize_t bytesread;
+				if ((bytesread = read(clients[id]->connfd, buf, bufsize)) > 0) {
+					buf[bytesread] = '\0';
+					trim(buf);
 
-						/* Skip empty messages. */
-						if (strlen(buf) == 0)
-							continue;
-						/* Handle commands. */
-						if (buf[0] == '/')
-							command_handle(id, buf);
-						/* Send message. */
-						else
-							server_send(EXCEPT, id, id, "\r\e[1;%dm%s\e[0m: %s\n", clients[id]->color, clients[id]->nick, buf);
-					}
-					/* Client disconnected. */
-					else {
-						close(clients[id]->connfd);
-						connected--;
-						server_send(EXCEPT, -1, id, "\r\e[34m * %s left. (connected: %d)\e[0m\n", clients[id]->nick, connected);
-						free(clients[id]);
-						clients[id] = NULL;
-						/* Set default rule on all clients for the disconnecting user. */
-						for (int i = 0; i < maxclients; i++)
-							if (clients[i] != NULL)
-								clients[i]->ruleset[id] = 3;
-					}
+					/* Skip empty messages. */
+					if (strlen(buf) == 0)
+						continue;
+					/* Handle commands. */
+					if (buf[0] == '/')
+						command_handle(id, buf);
+					/* Send message. */
+					else
+						server_send(EXCEPT, id, id, "\r\e[1;%dm%s\e[0m: %s\n",
+						    clients[id]->color, clients[id]->nick, buf);
+				}
+				/* Client disconnected. */
+				else {
+					puts("(serv) Client disconnected.");
+					client_disconnect(id);
 				}
 			}
 		}
@@ -151,20 +169,42 @@ int main()
 
 static int check_rules(int from_id, int to_id)
 {
-	/*
-	 * If sender is server or
-	 * sender wants to send and also receiver wants to receive.
-	 */
-	if (from_id < 0 || (clients[from_id]->ruleset[to_id] % 2 && clients[to_id]->ruleset[from_id] > 1))
+	/* If receiver is invalid just stop over here. */
+	if (clients[to_id] == NULL)
+		return 0;
+
+	/* Server messages are always permitted. */
+	if (from_id < 0)
+		return 1;
+
+	/* If sender wants to send and receiver wants to receive. */
+	if (clients[from_id] != NULL &&
+	    clients[from_id]->ruleset[to_id] % 2 &&
+	    clients[to_id]->ruleset[from_id] > 1)
 		return 1;
 	return 0;
+}
+
+static ssize_t server_write(int id, const void *buf, size_t count)
+{
+	ssize_t ret;
+	if ((ret = write(clients[id]->connfd, buf, count)) == -1) {
+		if (errno == EPIPE) {
+			puts("(serv) Client disconnected. (epipe)");
+			client_disconnect(id);
+		} else {
+			puts("(serv) Client disconnected. (¯\\_(ツ)_/¯)");
+			perror("write");
+		}
+	}
+	return ret;
 }
 
 /*
  * Sending mode:
  *   0. Send only to id
- *   1. Send to everyone except id
- *   2. Send to everyone (ignores id)
+ *   1. Send to everyone except to_id
+ *   2. Send to everyone (ignore to_id)
  */
 void server_send(int mode, int from_id, int to_id, const char *fmt, ...)
 {
@@ -175,11 +215,11 @@ void server_send(int mode, int from_id, int to_id, const char *fmt, ...)
 	va_end(ap);
 
 	if (mode == ONLY && check_rules(from_id, to_id))
-		write(clients[to_id]->connfd, str, len);
+		server_write(to_id, str, len);
 	else
 		for (int i = 0; i < maxclients; i++)
-			if ((mode == EVERYONE || i != to_id) && clients[i] != NULL && check_rules(from_id, i))
-				write(clients[i]->connfd, str, len);
+			if ((mode == EVERYONE || to_id != i) && check_rules(from_id, i))
+				server_write(i, str, len);
 	free(str);
 }
 
@@ -196,7 +236,7 @@ static char *hash_pass(const char *pass)
 {
 	char salt[20] = "$5$";
 	const char *const saltchars = "./0123456789ABCDEFGHIJKLMNOPQRST"
-		"UVWXYZabcdefghijklmnopqrstuvwxyz";
+	    "UVWXYZabcdefghijklmnopqrstuvwxyz";
 
 	/* Retrieve 16 random bytes from the operating system. */
 	unsigned char ubytes[16];
@@ -215,11 +255,11 @@ static char *hash_pass(const char *pass)
 int change_nick(int mode, int id, char *nick)
 {
 	if (mode && strcmp(clients[id]->nick, nick) == 0) /* In case user tries to register currently set nickname. */
-			return 1;
+		return 1;
 
 	else if (resolve_nick(nick) != -1) {
-			server_send(ONLY, -1, id, "\r\e[33m * Already logged in!\e[0m\n");
-			return 0;
+		server_send(ONLY, -1, id, "\r\e[33m * Already logged in!\e[0m\n");
+		return 0;
 	}
 	server_send(EVERYONE, -1, -1, "\r\e[34m * %s is now known as %s.\e[0m\n", clients[id]->nick, nick);
 	strcpy(clients[id]->nick, nick);
@@ -238,59 +278,57 @@ int nick_handle(int mode, char *nick, char *pass)
 	int ret = 0, found = 0;
 	FILE *fp[2];
 	fp[0] = fopen(AUTH_FILE, "a+");
-	if (fp != NULL) {
-		char *line = NULL;
-		char delim[] = ":";
-		size_t len;
-		ssize_t chars;
-		unsigned lineno[2];
-		for (lineno[0] = 0; (chars = getline(&line, &len, fp[0])) != -1; lineno[0]++) {
-			if (line[chars - 1] == '\n')
-				line[chars - 1] = '\0';
-			char *token = strtok(line, delim);
-			if (strcmp(nick, token) == 0) { /* Found a line with our nick. */
-				found = 1;
-				switch (mode) {
-				case EXISTS:
-					ret = 1;
-					break;
-				case LOGIN:
-					token = strtok(NULL, delim);
-					if (strcmp(crypt(pass, token), token) == 0) /* Password hashes match. */
-						ret = 1;
-					break;
-				case REMOVE:
-					fp[1] = fopen(AUTH_FILE_TMP, "w");
-					rewind(fp[0]);
-					/*
-					 * Read line by line old file and write to a new temporary file,
-					 * except the line we want to remove.
-					 */
-					for (lineno[1] = 0; (chars = getline(&line, &len, fp[0])) != -1; lineno[1]++) {
-						if (lineno[0] == lineno[1])
-							break;
-						fwrite(line, 1, chars, fp[1]);
-					}
-					/*
-					 * Write the remaining part of the file, but here we don't
-					 * need to count lines anymore nor check them.
-					 */
-					while ((chars = getline(&line, &len, fp[0])) != -1)
-						fwrite(line, 1, chars, fp[1]);
-					fclose(fp[1]);
-					rename(AUTH_FILE_TMP, AUTH_FILE); /* Replace the original file with temporary one. */
-					ret = 1;
-				}
+	char *line = NULL;
+	char delim[] = ":";
+	size_t len;
+	ssize_t chars;
+	unsigned lineno[2];
+	for (lineno[0] = 0; (chars = getline(&line, &len, fp[0])) != -1; lineno[0]++) {
+		if (line[chars - 1] == '\n')
+			line[chars - 1] = '\0';
+		char *token = strtok(line, delim);
+		if (strcmp(nick, token) == 0) { /* Found a line with our nick. */
+			found = 1;
+			switch (mode) {
+			case EXISTS:
+				ret = 1;
 				break;
+			case LOGIN:
+				token = strtok(NULL, delim);
+				if (strcmp(crypt(pass, token), token) == 0) /* Password hashes match. */
+					ret = 1;
+				break;
+			case REMOVE:
+				fp[1] = fopen(AUTH_FILE_TMP, "w");
+				rewind(fp[0]);
+				/*
+				 * Read line by line old file and write to a new temporary file,
+				 * except the line we want to remove.
+				 */
+				for (lineno[1] = 0; (chars = getline(&line, &len, fp[0])) != -1; lineno[1]++) {
+					if (lineno[0] == lineno[1])
+						break;
+					fwrite(line, 1, chars, fp[1]);
+				}
+				/*
+				 * Write the remaining part of the file, but here we don't
+				 * need to count lines anymore nor check them.
+				 */
+				while ((chars = getline(&line, &len, fp[0])) != -1)
+					fwrite(line, 1, chars, fp[1]);
+				fclose(fp[1]);
+				rename(AUTH_FILE_TMP, AUTH_FILE); /* Replace the original file with temporary one. */
+				ret = 1;
 			}
+			break;
 		}
-		free(line);
-		if (mode == REGISTER && !found) {
-			fprintf(fp[0], "%s:%s\n", nick, hash_pass(pass));
-			ret = 1;
-		}
-		fclose(fp[0]);
 	}
+	free(line);
+	if (mode == REGISTER && !found) {
+		fprintf(fp[0], "%s:%s\n", nick, hash_pass(pass));
+		ret = 1;
+	}
+	fclose(fp[0]);
 	return ret;
 }
 

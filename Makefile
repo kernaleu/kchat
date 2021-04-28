@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-lcrypt -Wall -Wextra
+CFLAGS=-lcrypt -Wall -Wextra -std=gnu99 -O2
 
 SRCS = $(wildcard src/*.c)
 
