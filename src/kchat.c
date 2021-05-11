@@ -344,18 +344,21 @@ void trim(char *str)
 			break;
 		}
 
-	/* Trim leading white spaces. */
-	for (i = 0; isspace(str[i]); i++);
+	/*
+	 * Trim leading non-printable (control) characters including whitespaces.
+	 * Stop at '\0' because it marks end of a string.
+	 */
+	for (i = 0; !isgraph(str[i]) && str[i] != '\0'; i++);
 
 	/* Shift all trailing characters to its left. */
 	for (j = 0; str[i + j] != '\0'; j++)
 		str[j] = str[i + j];
 	str[j] = '\0'; /* Terminate string with NULL. */
 
-	/* Trim trailing white spaces. */
+	/* Trim trailing non-printable characters and whitespaces. */
 	i = -1;
 	for (j = 0; str[j] != '\0'; j++)
-		if (!isspace(str[j]))
+		if (isgraph(str[j]))
 			i = j;
 
 	/* Set trailing character to NULL. */
