@@ -178,6 +178,6 @@ void cmd_help(int id)
 		" * /register\n"
 		" * /rules\n"
 		" * /unregister\n"
-		" * /users\n"
+		" * /users"
 		"\e[0m\n");
 }
