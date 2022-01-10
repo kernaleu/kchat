@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2021 İrem Kuyucu <siren@kernal.eu>
+ * Copyright (C) 2021 Laurynas Četyrkinas <stnby@kernal.eu>
+ *
+ * This file is part of Kernal Chat.
+ *
+ * Kernal Chat is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Kernal Chat is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Kernal Chat.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #define _GNU_SOURCE
 
 #include <arpa/inet.h>
@@ -63,6 +83,31 @@ static void client_disconnect(int id)
 	for (int i = 0; i < maxclients; i++)
 		if (clients[i] != NULL)
 			clients[i]->ruleset[id] = 3;
+}
+
+void client_initialize(int connfd)
+{
+	int id;
+	for (id = 0; id < maxclients; id++) {
+		/* If position is empty. */
+		if (clients[id] == NULL) {
+			clients[id] = malloc(sizeof(client_t));
+			clients[id]->connfd = connfd;
+			clients[id]->color = rand() % 5 + 31;
+			/* Set default rules for the clients. */
+			memset(clients[id]->ruleset, 3, sizeof(int) * maxclients);
+			snprintf(clients[id]->nick, 16, "guest_%d", id);
+			connected++;
+			server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n",
+			    clients[id]->nick, connected);
+			server_send(ONLY, -1, id, "%s\n", motd);
+			break;
+		}
+	}
+	if (id == maxclients) {/* Server is full. */
+		puts("(serv) Server is full. Disconnecting.");
+		close(connfd);
+	}
 }
 
 int main()
@@ -165,29 +210,9 @@ int main()
 			char ch[50];
 			inet_ntop(AF_INET, &(cli_addr4.sin_addr), ch, 50);
 			printf("(serv) New connection, ipaddr: %s\n", ch);
-			for (id = 0; id < maxclients; id++) {
-				/* If position is empty. */
-				if (clients[id] == NULL) {
-					clients[id] = malloc(sizeof(client_t));
-					clients[id]->connfd = connfd;
-					clients[id]->color = rand() % 5 + 31;
-					/* Set default rules for the clients. */
-					memset(clients[id]->ruleset, 3, sizeof(int) * maxclients);
-					snprintf(clients[id]->nick, 16, "guest_%d", id);
-					connected++;
-					server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n",
-					    clients[id]->nick, connected);
-					server_send(ONLY, -1, id, "%s\n", motd);
-					break;
-				}
-			}
-			if (id == maxclients) {/* Server is full. */
-				puts("(serv) Server is full. Disconnecting.");
-				close(connfd);
-			}
+			client_initialize(connfd);
 		}
 		#endif
-		/* Copied from previous lines for IPv4. TODO: clean up. */
 		#ifdef IPV6_ADDR
 		if (FD_ISSET(sockfd_v6, &descriptors)) {
 			if ((connfd = accept(sockfd_v6, (struct sockaddr *)&cli_addr6, (socklen_t*)&addrlen6)) == -1) {
@@ -197,26 +222,7 @@ int main()
 			char ch[50];
 			inet_ntop(AF_INET6, &(cli_addr6.sin6_addr), ch, 50);
 			printf("(serv) New connection, ipaddr: %s\n", ch);
-			for (id = 0; id < maxclients; id++) {
-				/* If position is empty. */
-				if (clients[id] == NULL) {
-					clients[id] = malloc(sizeof(client_t));
-					clients[id]->connfd = connfd;
-					clients[id]->color = rand() % 5 + 31;
-					/* Set default rules for the clients. */
-					memset(clients[id]->ruleset, 3, sizeof(int) * maxclients);
-					snprintf(clients[id]->nick, 16, "guest_%d", id);
-					connected++;
-					server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n",
-					    clients[id]->nick, connected);
-					server_send(ONLY, -1, id, "%s\n", motd);
-					break;
-				}
-			}
-			if (id == maxclients) {/* Server is full. */
-				puts("(serv) Server is full. Disconnecting.");
-				close(connfd);
-			}
+			client_initialize(connfd);
 		}
 		#endif
 		/* IO operations on other sockets. */
