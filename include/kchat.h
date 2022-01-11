@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2021 İrem Kuyucu <siren@kernal.eu>
- * Copyright (C) 2021 Laurynas Četyrkinas <stnby@kernal.eu>
+ * Copyright (C) 2022 İrem Kuyucu <siren@kernal.eu>
+ * Copyright (C) 2022 Laurynas Četyrkinas <stnby@kernal.eu>
  *
  * This file is part of Kernal Chat.
  *
