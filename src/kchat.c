@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2022 İrem Kuyucu <siren@kernal.eu>
+ * Copyright (C) 2022 Laurynas Četyrkinas <stnby@kernal.eu>
+ *
+ * This file is part of Kernal Chat.
+ *
+ * Kernal Chat is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Kernal Chat is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Kernal Chat.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #define _GNU_SOURCE
 
 #include <arpa/inet.h>
@@ -20,7 +40,12 @@ static int bufsize = BUF_SIZE;
 static char *motd = MOTD;
 
 client_t *clients[MAX_CLIENTS];
-int sockfd;
+#ifdef IPV4_ADDR
+int sockfd_v4;
+#endif
+#ifdef IPV6_ADDR
+int sockfd_v6;
+#endif
 int maxclients = MAX_CLIENTS;
 int connected = 0;
 
@@ -34,7 +59,12 @@ void quit()
 			free(clients[id]);
 		}
 	}
-	close(sockfd);
+	#ifdef IPV4_ADDR
+	close(sockfd_v4);
+	#endif
+	#ifdef IPV6_ADDR
+	close(sockfd_v6);
+	#endif
 	exit(0);
 }
 
@@ -55,39 +85,89 @@ static void client_disconnect(int id)
 			clients[i]->ruleset[id] = 3;
 }
 
+void client_initialize(int connfd)
+{
+	int id;
+	for (id = 0; id < maxclients; id++) {
+		/* If position is empty. */
+		if (clients[id] == NULL) {
+			clients[id] = malloc(sizeof(client_t));
+			clients[id]->connfd = connfd;
+			clients[id]->color = rand() % 5 + 31;
+			/* Set default rules for the clients. */
+			memset(clients[id]->ruleset, 3, sizeof(int) * maxclients);
+			snprintf(clients[id]->nick, 16, "guest_%d", id);
+			connected++;
+			server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n",
+			    clients[id]->nick, connected);
+			server_send(ONLY, -1, id, "%s\n", motd);
+			break;
+		}
+	}
+	if (id == maxclients) {/* Server is full. */
+		puts("(serv) Server is full. Disconnecting.");
+		close(connfd);
+	}
+}
+
 int main()
 {
-	int connfd, id;
+	int connfd, id, option = 1;
 	fd_set descriptors;
 	char buf[bufsize + 1]; /* 1 more to leave space for '\0'. */
 
 	for (id = 0; id < maxclients; id++)
 		clients[id] = NULL;
 
-	struct sockaddr_in serv_addr, cli_addr;
-	int addrlen = sizeof(cli_addr);
+	#ifdef IPV4_ADDR
+	struct sockaddr_in serv_addr4, cli_addr4;
+	int addrlen4 = sizeof(cli_addr4);
 
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+	if ((sockfd_v4 = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 		perror("socket");
 		return 1;
 	}
 
-	int option = 1;
-	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
+	setsockopt(sockfd_v4, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
 
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = INADDR_ANY;
-	serv_addr.sin_port = htons(PORT);
+	serv_addr4.sin_family = AF_INET;
+	serv_addr4.sin_addr.s_addr = inet_addr(IPV4_ADDR);
+	serv_addr4.sin_port = htons(IPV4_PORT);
 
-	if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+	if (bind(sockfd_v4, (struct sockaddr *)&serv_addr4, sizeof(serv_addr4)) < 0) {
 		perror("bind");
 		return 1;
 	}
 
-	if (listen(sockfd, BACKLOG) < 0) {
+	if (listen(sockfd_v4, BACKLOG) < 0) {
 		perror("listen");
 		return 1;
 	}
+	#endif
+	#ifdef IPV6_ADDR
+	struct sockaddr_in6 serv_addr6, cli_addr6;
+	int addrlen6 = sizeof(cli_addr6);
+
+	if ((sockfd_v6 = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
+		perror("socket");
+		return 1;
+	}
+
+	setsockopt(sockfd_v6, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(int));
+	serv_addr6.sin6_family = AF_INET6;
+	inet_pton(AF_INET6, IPV6_ADDR, &serv_addr6.sin6_addr);
+	serv_addr6.sin6_port = htons(IPV6_PORT);
+
+	if (bind(sockfd_v6, (struct sockaddr *)&serv_addr6, sizeof(serv_addr6)) < 0) {
+		perror("bind");
+		return 1;
+	}
+
+	if (listen(sockfd_v6, BACKLOG) < 0) {
+		perror("listen");
+		return 1;
+	}
+	#endif
 
 	signal(SIGPIPE, SIG_IGN); /* Ignore SIGPIPE as we handle it manually. */
 	signal(SIGINT, quit);
@@ -95,8 +175,19 @@ int main()
 	puts("(serv) Waiting for connections...");
 	for (;;) {
 		FD_ZERO(&descriptors);
-		FD_SET(sockfd, &descriptors);
-		int maxfd = sockfd;
+		#ifdef IPV4_ADDR
+		FD_SET(sockfd_v4, &descriptors);
+		int maxfd = sockfd_v4;
+		#endif
+		#ifdef IPV6_ADDR
+		FD_SET(sockfd_v6, &descriptors);
+		#ifdef IPV4_ADDR
+		if (sockfd_v6 > sockfd_v4)
+			maxfd = sockfd_v6;
+		#else
+		int maxfd = sockfd_v6;
+		#endif
+		#endif
 		/* Add all socket descriptors to the read list. */
 		for (id = 0; id < maxclients; id++) {
 			if (clients[id] != NULL) {
@@ -110,34 +201,30 @@ int main()
 		if (select(maxfd + 1 ,&descriptors, NULL, NULL, NULL) == -1)
 			perror("select");
 		/* Incoming connection on the primary socket. (new client) */
-		if (FD_ISSET(sockfd, &descriptors)) {
-			if ((connfd = accept(sockfd, (struct sockaddr *)&cli_addr, (socklen_t*)&addrlen)) == -1) {
+		#ifdef IPV4_ADDR
+		if (FD_ISSET(sockfd_v4, &descriptors)) {
+			if ((connfd = accept(sockfd_v4, (struct sockaddr *)&cli_addr4, (socklen_t*)&addrlen4)) == -1) {
 				perror("accept");
 				exit(1);
 			}
-			printf("(serv) New connection, sockfd: %d, ipaddr: %s, port: %d\n", connfd,
-			    inet_ntoa(cli_addr.sin_addr), ntohs(cli_addr.sin_port));
-			for (id = 0; id < maxclients; id++) {
-				/* If position is empty. */
-				if (clients[id] == NULL) {
-					clients[id] = malloc(sizeof(client_t));
-					clients[id]->connfd = connfd;
-					clients[id]->color = rand() % 5 + 31;
-					/* Set default rules for the clients. */
-					memset(clients[id]->ruleset, 3, sizeof(int) * maxclients);
-					snprintf(clients[id]->nick, 16, "guest_%d", id);
-					connected++;
-					server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n",
-					    clients[id]->nick, connected);
-					server_send(ONLY, -1, id, "%s\n", motd);
-					break;
-				}
-			}
-			if (id == maxclients) {/* Server is full. */
-				puts("(serv) Server is full. Disconnecting.");
-				close(connfd);
-			}
+			char ch[50];
+			inet_ntop(AF_INET, &(cli_addr4.sin_addr), ch, 50);
+			printf("(serv) New connection, ipaddr: %s\n", ch);
+			client_initialize(connfd);
 		}
+		#endif
+		#ifdef IPV6_ADDR
+		if (FD_ISSET(sockfd_v6, &descriptors)) {
+			if ((connfd = accept(sockfd_v6, (struct sockaddr *)&cli_addr6, (socklen_t*)&addrlen6)) == -1) {
+				perror("accept");
+				exit(1);
+			}
+			char ch[50];
+			inet_ntop(AF_INET6, &(cli_addr6.sin6_addr), ch, 50);
+			printf("(serv) New connection, ipaddr: %s\n", ch);
+			client_initialize(connfd);
+		}
+		#endif
 		/* IO operations on other sockets. */
 		for (id = 0; id < maxclients; id++) {
 			if (clients[id] != NULL && FD_ISSET(clients[id]->connfd, &descriptors)) {

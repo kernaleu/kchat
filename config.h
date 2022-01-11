@@ -1,7 +1,14 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define PORT 1337
+/* Define if you want to bind to IPv4 */
+#define IPV4_ADDR "0.0.0.0"
+#define IPV4_PORT 1337
+
+/* Define if you want to bind to IPv6 */
+#define IPV6_ADDR "::1"
+#define IPV6_PORT 1337
+
 #define BACKLOG 10 /* Pending connections in queue. */
 #define BUF_SIZE 512
 #define MAX_CLIENTS 1024
