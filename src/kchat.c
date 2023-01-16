@@ -329,7 +329,7 @@ static char *hash_pass(const char *pass)
 	/* Retrieve 16 random bytes from the operating system. */
 	unsigned char ubytes[16];
 	if (getentropy (ubytes, sizeof ubytes)) {
-		perror ("getentropy");
+		perror("getentropy");
 		return NULL;
 	}
 
@@ -365,12 +365,18 @@ int nick_handle(int mode, char *nick, char *pass)
 {
 	int ret = 0, found = 0;
 	FILE *fp[2];
-	fp[0] = fopen(AUTH_FILE, "a+");
 	char *line = NULL;
 	char delim[] = ":";
 	size_t len;
 	ssize_t chars;
 	unsigned lineno[2];
+
+	fp[0] = fopen(AUTH_FILE, "a+");
+	if (fp[0] == NULL) {
+		perror("fopen");
+		return 2;
+	}
+
 	for (lineno[0] = 0; (chars = getline(&line, &len, fp[0])) != -1; lineno[0]++) {
 		if (line[chars - 1] == '\n')
 			line[chars - 1] = '\0';
@@ -388,6 +394,11 @@ int nick_handle(int mode, char *nick, char *pass)
 				break;
 			case REMOVE:
 				fp[1] = fopen(AUTH_FILE_TMP, "w");
+				if (fp[1] == NULL) {
+					perror("fopen");
+					fclose(fp[0]);
+					return 2;
+				}
 				rewind(fp[0]);
 				/*
 				 * Read line by line old file and write to a new temporary file,

@@ -94,8 +94,12 @@ void cmd_nick(int id, int argc, char *argv[])
 	if (nick_valid(id, argv[1]))
 		return;
 
-	if (nick_handle(EXISTS, argv[1], NULL)) {
+	int ret = nick_handle(EXISTS, argv[1], NULL);
+	if (ret == 1) {
 		server_send(ONLY, -1, id, "\r\e[33m * Already registered! Provide a password with /login command.\e[0m\n");
+		return;
+	} else if (ret == 2) {
+		server_send(ONLY, -1, id, "\r\e[31m * Failed to check nickname. Wrong file permissions on the server.\e[0m\n");
 		return;
 	}
 
@@ -112,8 +116,12 @@ void cmd_register(int id, int argc, char *argv[])
 	if (nick_valid(id, argv[1]))
 		return;
 
-	if (!nick_handle(REGISTER, argv[1], argv[2])) {
+	int ret = nick_handle(REGISTER, argv[1], argv[2]);
+	if (ret == 0) {
 		server_send(ONLY, -1, id, "\r\e[33m * Already taken! Provide a password with /login command.\e[0m\n");
+		return;
+	} else if (ret == 2) {
+		server_send(ONLY, -1, id, "\r\e[31m * Failed to check nickname. Wrong file permissions on the server.\e[0m\n");
 		return;
 	}
 
@@ -123,8 +131,12 @@ void cmd_register(int id, int argc, char *argv[])
 
 void cmd_unregister(int id)
 {
-	if (!nick_handle(REMOVE, clients[id]->nick, NULL)) {
+	int ret = nick_handle(REMOVE, clients[id]->nick, NULL);
+	if (ret == 0) {
 		server_send(ONLY, -1, id, "\r\e[34m * Not registered!\e[0m\n");
+		return;
+	} else if (ret == 2) {
+		server_send(ONLY, -1, id, "\r\e[31m * Failed to check nickname. Wrong file permissions on the server.\e[0m\n");
 		return;
 	}
 
@@ -144,8 +156,12 @@ void cmd_login(int id, int argc, char *argv[])
 	if (nick_valid(id, argv[1]))
 		return;
 
-	if (!nick_handle(LOGIN, argv[1], argv[2])) {
+	int ret = nick_handle(LOGIN, argv[1], argv[2]);
+	if (ret == 0) {
 		server_send(ONLY, -1, id, "\r\e[33m * Wrong password or not registered!\e[0m\n");
+		return;
+	} else if (ret == 2) {
+		server_send(ONLY, -1, id, "\r\e[31m * Failed to check nickname. Wrong file permissions on the server.\e[0m\n");
 		return;
 	}
 
