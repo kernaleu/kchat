@@ -1,0 +1,11 @@
+[Unit]
+Description=kChat
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/var/lib/kchat/kchat/kchat
+
+[Install]
+WantedBy=multi-user.target
