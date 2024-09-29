@@ -22,6 +22,7 @@
 
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <crypt.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdarg.h>

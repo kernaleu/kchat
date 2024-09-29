@@ -7,7 +7,7 @@ SRCS = $(wildcard src/*.c)
 all: kchat
 
 kchat: $(SRCS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SRCS) -o $@
+	$(CC) $(LDFLAGS) $(SRCS) -o $@ $(CFLAGS)
 
 clean:
 	rm -f kchat
