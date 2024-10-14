@@ -88,6 +88,26 @@ static void client_disconnect(int id)
 
 void client_initialize(int connfd)
 {
+	#ifdef CONNECT_LINE_ENABLED
+	#ifdef CONNECT_LINE_INFORM_STRING
+	char connect_msg[512];
+	snprintf(connect_msg, 512, "Type \"%s\" to continue.\n", CONNECT_LINE);
+	write(connfd, connect_msg, strlen(connect_msg));
+	#endif
+	ssize_t bytesread;
+	char buf[bufsize + 1]; /* 1 more to leave space for '\0'. */
+	if ((bytesread = read(connfd, buf, bufsize)) > 0) {
+		buf[bytesread] = '\0';
+		trim(buf);
+		if (strcmp(CONNECT_LINE, buf) != 0) {
+			close(connfd);
+			return;
+		}
+	} else {
+			close(connfd);
+			return;
+	}
+	#endif
 	int id;
 	for (id = 0; id < maxclients; id++) {
 		/* If position is empty. */
