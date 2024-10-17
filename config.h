@@ -26,4 +26,8 @@
 "             (core dumped)" \
 "\e[0m\n"
 
+#define CONNECT_LINE_ENABLED
+#define CONNECT_LINE_INFORM_STRING
+#define CONNECT_LINE "kchat-connect"
+
 #endif
