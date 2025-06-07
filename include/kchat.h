@@ -38,6 +38,7 @@ typedef struct {
 	 *   Default (outgoing + incoming) = 3
 	 */
 	int ruleset[MAX_CLIENTS];
+	bool captcha_passed;
 } client_t;
 
 extern client_t *clients[];
