@@ -32,6 +32,7 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "../include/commands.h"
 #include "../include/kchat.h"
@@ -88,26 +89,6 @@ static void client_disconnect(int id)
 
 void client_initialize(int connfd)
 {
-	#ifdef CONNECT_LINE_ENABLED
-	#ifdef CONNECT_LINE_INFORM_STRING
-	char connect_msg[512];
-	snprintf(connect_msg, 512, "Type \"%s\" to continue.\n", CONNECT_LINE);
-	write(connfd, connect_msg, strlen(connect_msg));
-	#endif
-	ssize_t bytesread;
-	char buf[bufsize + 1]; /* 1 more to leave space for '\0'. */
-	if ((bytesread = read(connfd, buf, bufsize)) > 0) {
-		buf[bytesread] = '\0';
-		trim(buf);
-		if (strcmp(CONNECT_LINE, buf) != 0) {
-			close(connfd);
-			return;
-		}
-	} else {
-			close(connfd);
-			return;
-	}
-	#endif
 	int id;
 	for (id = 0; id < maxclients; id++) {
 		/* If position is empty. */
@@ -115,12 +96,15 @@ void client_initialize(int connfd)
 			clients[id] = malloc(sizeof(client_t));
 			clients[id]->connfd = connfd;
 			clients[id]->color = rand() % 5 + 31;
+			clients[id]->captcha_passed = false;
 			/* Set default rules for the clients. */
 			memset(clients[id]->ruleset, 3, sizeof(int) * maxclients);
 			snprintf(clients[id]->nick, 16, "guest_%d", id);
 			connected++;
+			#ifndef CONNECT_LINE_ENABLED
 			server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n",
 			    clients[id]->nick, connected);
+			#endif
 			server_send(ONLY, -1, id, "%s\n", motd);
 			break;
 		}
@@ -128,12 +112,39 @@ void client_initialize(int connfd)
 	if (id == maxclients) {/* Server is full. */
 		puts("(serv) Server is full. Disconnecting.");
 		close(connfd);
+		return;
 	}
+
+	#ifdef CONNECT_LINE_ENABLED
+	#ifdef CONNECT_LINE_INFORM_STRING
+	server_send(ONLY, -1, id, "type \"%s\" to continue: ", CONNECT_LINE);
+	#endif
+	#endif
+}
+
+int guard_captcha(const int id, const char *msg) {
+	int ret;
+
+	if (clients[id]->captcha_passed == true)
+		return 0;
+
+	ret = strcmp(CONNECT_LINE, msg);
+	if (ret == 0) {
+		clients[id]->captcha_passed = true;
+		server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n",
+		    clients[id]->nick, connected);
+		return 1;
+	}
+
+	puts("(serv) Client failed captcha. Disconnecting.");
+	server_send(ONLY, -1, id, "%s\n", "you’ve been caught impersonating a human poorly");
+	client_disconnect(id);
+	return -1;
 }
 
 int main()
 {
-	int connfd, id, option = 1;
+	int connfd, id, ret, option = 1;
 	fd_set descriptors;
 	char buf[bufsize + 1]; /* 1 more to leave space for '\0'. */
 
@@ -257,6 +268,14 @@ int main()
 					/* Skip empty messages. */
 					if (strlen(buf) == 0)
 						continue;
+
+					/* Captcha Test */
+					#ifdef CONNECT_LINE_ENABLED
+					ret = guard_captcha(id, buf);
+					if (ret != 0)
+						continue;
+					#endif
+
 					/* Handle commands. */
 					if (buf[0] == '/')
 						command_handle(id, buf);
@@ -285,6 +304,12 @@ static int check_rules(int from_id, int to_id)
 	/* Server messages are always permitted. */
 	if (from_id < 0)
 		return 1;
+
+	#ifndef CONNECT_LINE_ENABLED
+	/* receiver must pass captcha . */
+	if (clients[to_id]->captcha_passed == false)
+		return 0;
+	#endif
 
 	/* If sender wants to send and receiver wants to receive. */
 	if (clients[from_id] != NULL &&
