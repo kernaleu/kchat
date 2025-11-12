@@ -117,7 +117,7 @@ void client_initialize(int connfd)
 
 	#ifdef CONNECT_LINE_ENABLED
 	#ifdef CONNECT_LINE_INFORM_STRING
-	server_send(ONLY, -1, id, "type \"%s\" to continue: ", CONNECT_LINE);
+	server_send(ONLY, -1, id, "\r\e[34m * Type \"%s\" to continue:\e[0m\n", CONNECT_LINE);
 	#endif
 	#endif
 }
@@ -131,7 +131,7 @@ int guard_captcha(const int id, const char *msg) {
 	ret = strcmp(CONNECT_LINE, msg);
 	if (ret == 0) {
 		clients[id]->captcha_passed = true;
-		server_send(EXCEPT, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n",
+		server_send(EVERYONE, -1, id, "\r\e[34m * %s joined. (connected: %d)\e[0m\n",
 		    clients[id]->nick, connected);
 		return 1;
 	}
